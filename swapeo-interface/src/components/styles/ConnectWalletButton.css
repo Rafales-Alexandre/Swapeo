@@ -1,0 +1,261 @@
+.connect-wallet-container {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.connect-wallet-button {
+  position: relative;
+  min-width: 200px;
+  padding: 12px 24px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 1rem;
+  background: rgba(0, 0, 0, 0.7);
+  border: 1px solid rgba(76, 175, 80, 0.3);
+  border-radius: 8px;
+  color: #4CAF50;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  overflow: hidden;
+}
+
+/* Matrix rain effect behind the button */
+.connect-wallet-button::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    180deg,
+    transparent 0%,
+    rgba(76, 175, 80, 0.1) 50%,
+    transparent 100%
+  );
+  animation: matrixRain 2s linear infinite;
+  z-index: 0;
+}
+
+/* Button content */
+.connect-wallet-button span {
+  position: relative;
+  z-index: 1;
+}
+
+/* Hover effect */
+.connect-wallet-button:hover {
+  background: rgba(76, 175, 80, 0.1);
+  border-color: rgba(76, 175, 80, 0.6);
+  box-shadow: 0 0 20px rgba(76, 175, 80, 0.3);
+  transform: translateY(-2px);
+}
+
+/* Active state */
+.connect-wallet-button:active {
+  transform: translateY(0);
+}
+
+/* Connected state */
+.connect-wallet-button.connected {
+  background: rgba(76, 175, 80, 0.1);
+  border-color: rgba(76, 175, 80, 0.6);
+  animation: connectedPulse 2s infinite;
+}
+
+/* Loading state */
+.connect-wallet-button.loading {
+  cursor: not-allowed;
+  opacity: 0.8;
+}
+
+.connect-wallet-button.loading::after {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: conic-gradient(
+    transparent,
+    rgba(76, 175, 80, 0.3),
+    transparent 30%
+  );
+  animation: rotate 2s linear infinite;
+}
+
+/* MetaMask icon */
+.metamask-icon {
+  margin-right: 8px;
+  transition: transform 0.3s ease;
+}
+
+.connect-wallet-button:hover .metamask-icon {
+  transform: rotate(360deg);
+}
+
+/* Status indicator */
+.connection-status {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.875rem;
+  color: rgba(76, 175, 80, 0.8);
+}
+
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #4CAF50;
+  animation: statusPulse 2s infinite;
+}
+
+/* Animations */
+@keyframes matrixRain {
+  0% {
+    transform: translateY(-100%);
+  }
+  100% {
+    transform: translateY(100%);
+  }
+}
+
+@keyframes connectedPulse {
+  0% {
+    box-shadow: 0 0 5px rgba(76, 175, 80, 0.2);
+  }
+  50% {
+    box-shadow: 0 0 20px rgba(76, 175, 80, 0.4);
+  }
+  100% {
+    box-shadow: 0 0 5px rgba(76, 175, 80, 0.2);
+  }
+}
+
+@keyframes statusPulse {
+  0% {
+    opacity: 0.5;
+    transform: scale(0.8);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  100% {
+    opacity: 0.5;
+    transform: scale(0.8);
+  }
+}
+
+@keyframes rotate {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Responsive design */
+@media (max-width: 480px) {
+  .connect-wallet-button {
+    min-width: 160px;
+    font-size: 0.9rem;
+    padding: 10px 20px;
+  }
+}
+
+/* Info tooltip styles */
+.connect-wallet-info {
+  position: relative;
+  display: inline-block;
+}
+
+.info-tooltip {
+  position: relative;
+  cursor: pointer;
+}
+
+.info-icon {
+  font-size: 16px;
+  opacity: 0.7;
+  transition: opacity 0.3s ease;
+}
+
+.info-tooltip:hover .info-icon {
+  opacity: 1;
+}
+
+.tooltip-content {
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 220px;
+  padding: 16px;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  opacity: 0;
+  visibility: hidden;
+  transition: all 0.3s ease;
+  z-index: 1000;
+}
+
+.info-tooltip:hover .tooltip-content {
+  opacity: 1;
+  visibility: visible;
+  transform: translateX(-50%) translateY(-8px);
+}
+
+.tooltip-content h4 {
+  margin: 0 0 8px;
+  color: #2c3e50;
+  font-size: 14px;
+}
+
+.tooltip-content p {
+  margin: 0 0 8px;
+  color: #34495e;
+  font-size: 12px;
+}
+
+.tooltip-content ul {
+  margin: 0;
+  padding-left: 16px;
+  color: #7f8c8d;
+  font-size: 12px;
+}
+
+.tooltip-content li {
+  margin: 4px 0;
+}
+
+/* Custom toast styles */
+.Toastify__toast {
+  border-radius: 12px !important;
+}
+
+.Toastify__toast-icon {
+  font-size: 20px;
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+  .tooltip-content {
+    background: #2c3e50;
+    color: white;
+  }
+
+  .tooltip-content h4 {
+    color: #ecf0f1;
+  }
+
+  .tooltip-content p,
+  .tooltip-content ul {
+    color: #bdc3c7;
+  }
+} 

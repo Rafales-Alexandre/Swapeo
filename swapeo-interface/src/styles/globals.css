@@ -1,0 +1,52 @@
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap');
+
+:root {
+  /* Matrix theme variables */
+  --matrix-primary: #4CAF50;
+  --matrix-secondary: #2E7D32;
+  --matrix-accent: #81C784;
+  --matrix-glow: rgba(76, 175, 80, 0.3);
+  --matrix-bg-dark: rgba(0, 0, 0, 0.9);
+  --matrix-bg-card: rgba(18, 24, 33, 0.8);
+  --matrix-bg-overlay: rgba(0, 255, 0, 0.05);
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'JetBrains Mono', monospace;
+  background: var(--matrix-bg-dark);
+  color: var(--matrix-primary);
+  min-height: 100vh;
+  line-height: 1.6;
+}
+
+/* Matrix-style scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--matrix-bg-dark);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--matrix-primary);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--matrix-secondary);
+}
+
+.app-container {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  padding: 72px 0;
+} 

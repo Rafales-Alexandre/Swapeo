@@ -1,0 +1,123 @@
+/* Common Matrix-style input styling */
+.matrix-input {
+  background: var(--matrix-bg-overlay);
+  border: 1px solid var(--matrix-glow);
+  border-radius: 8px;
+  padding: 0.75rem;
+  color: var(--matrix-primary);
+  font-family: 'JetBrains Mono', monospace;
+  transition: all 0.3s ease;
+}
+
+.matrix-input:focus {
+  border-color: var(--matrix-primary);
+  box-shadow: 0 0 15px var(--matrix-glow);
+}
+
+.matrix-input input {
+  background: transparent;
+  border: none;
+  color: #4CAF50;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 1.25rem;
+  width: 100%;
+  outline: none;
+}
+
+.matrix-input input::placeholder {
+  color: rgba(76, 175, 80, 0.3);
+}
+
+/* Matrix-style buttons */
+.matrix-button {
+  background: transparent;
+  border: 1px solid var(--matrix-glow);
+  color: var(--matrix-primary);
+  padding: 0.75rem 1.5rem;
+  border-radius: 8px;
+  font-family: 'JetBrains Mono', monospace;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+  transition: all 0.3s ease;
+}
+
+.matrix-button:hover {
+  background: var(--matrix-bg-overlay);
+  border-color: var(--matrix-primary);
+  box-shadow: 0 0 15px var(--matrix-glow);
+}
+
+.matrix-button::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: radial-gradient(
+    circle,
+    var(--matrix-glow) 0%,
+    transparent 70%
+  );
+  animation: rotate 4s linear infinite;
+}
+
+/* Matrix-style panels */
+.matrix-card {
+  background: var(--matrix-bg-card);
+  border: 1px solid var(--matrix-glow);
+  border-radius: 12px;
+  padding: 1.5rem;
+  backdrop-filter: blur(10px);
+  transition: all 0.3s ease;
+}
+
+.matrix-card:hover {
+  border-color: var(--matrix-primary);
+  box-shadow: 0 0 20px var(--matrix-glow);
+}
+
+/* Animations */
+@keyframes rotate {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+@keyframes pulse {
+  0% { opacity: 0.5; }
+  50% { opacity: 1; }
+  100% { opacity: 0.5; }
+}
+
+/* Matrix-style text */
+.matrix-text {
+  color: #4CAF50;
+  font-family: 'JetBrains Mono', monospace;
+  text-shadow: 0 0 10px rgba(76, 175, 80, 0.3);
+}
+
+/* Status indicators */
+.status-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.25rem 0.75rem;
+  border-radius: 16px;
+  font-size: 0.875rem;
+}
+
+.status-indicator.positive {
+  background: rgba(76, 175, 80, 0.1);
+  color: #4CAF50;
+}
+
+.status-indicator.warning {
+  background: rgba(255, 152, 0, 0.1);
+  color: #FF9800;
+}
+
+.status-indicator.negative {
+  background: rgba(244, 67, 54, 0.1);
+  color: #F44336;
+} 

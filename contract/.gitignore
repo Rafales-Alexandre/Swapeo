@@ -1,0 +1,25 @@
+# Hardhat files
+cache
+artifacts
+typechain-types
+
+# Dependencies
+node_modules
+.env
+
+# IDE
+.idea
+.vscode
+
+# Logs
+*.log
+
+# Coverage
+coverage
+coverage.json
+
+# Ignition deployment files
+ignition/deployments
+
+# Local blockchain data
+deployments/localhost

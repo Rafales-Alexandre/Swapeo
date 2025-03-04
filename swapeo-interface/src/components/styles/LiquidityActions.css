@@ -1,0 +1,561 @@
+.liquidity-actions-container {
+  background: white;
+  border-radius: 20px;
+  padding: 24px;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.1);
+  max-width: 600px;
+  margin: 0 auto;
+  transition: all 0.3s ease;
+}
+
+.liquidity-header {
+  margin-bottom: 24px;
+}
+
+.liquidity-header h2 {
+  margin: 0 0 16px;
+  color: #4CAF50;
+  font-size: 24px;
+  font-weight: 600;
+  text-align: center;
+}
+
+.tab-switcher {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  margin-bottom: 24px;
+  background: #f8f9fa;
+  padding: 4px;
+  border-radius: 12px;
+}
+
+.matrix-tab-button {
+  padding: 10px 20px;
+  background: rgba(0, 0, 0, 0.7);
+  border: 1px solid rgba(76, 175, 80, 0.3);
+  border-radius: 8px;
+  color: rgba(76, 175, 80, 0.8);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.matrix-tab-button.active {
+  background: rgba(76, 175, 80, 0.1);
+  border-color: rgba(76, 175, 80, 0.6);
+  color: #4CAF50;
+  box-shadow: 0 0 15px rgba(76, 175, 80, 0.2);
+}
+
+.matrix-tab-button:hover:not(.active) {
+  background: rgba(76, 175, 80, 0.05);
+  border-color: rgba(76, 175, 80, 0.4);
+  color: #4CAF50;
+}
+
+.token-selection {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  margin-bottom: 24px;
+}
+
+.token-input-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.token-input-group label {
+  color: #4CAF50;
+  font-weight: 500;
+  font-size: 14px;
+}
+
+.token-input-group select {
+  padding: 12px;
+  border: 1px solid #dcdfe6;
+  border-radius: 8px;
+  background: white;
+  color: #4CAF50;
+  font-size: 14px;
+  transition: all 0.3s ease;
+}
+
+.token-input-group select:focus {
+  border-color: #3498db;
+  box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.2);
+  outline: none;
+}
+
+.action-panel {
+  background: #f8f9fa;
+  border-radius: 16px;
+  padding: 20px;
+  margin-bottom: 24px;
+  animation: slideIn 0.3s ease-out;
+}
+
+.amount-inputs {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.amount-input-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.input-with-button {
+  display: flex;
+  gap: 8px;
+}
+
+.amount-input-group input {
+  flex: 1;
+  padding: 12px;
+  border: 1px solid #dcdfe6;
+  border-radius: 8px;
+  font-size: 14px;
+  transition: all 0.3s ease;
+}
+
+.amount-input-group input:focus {
+  border-color: #3498db;
+  box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.2);
+  outline: none;
+}
+
+.liquidity-action-button {
+  width: 100%;
+  padding: 12px 24px;
+  background: rgba(0, 0, 0, 0.7);
+  border: 1px solid rgba(76, 175, 80, 0.3);
+  border-radius: 8px;
+  color: #4CAF50;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+  transition: all 0.3s ease;
+}
+
+.liquidity-action-button:hover:not(:disabled) {
+  background: rgba(76, 175, 80, 0.1);
+  border-color: rgba(76, 175, 80, 0.6);
+  box-shadow: 0 0 15px rgba(76, 175, 80, 0.2);
+}
+
+.liquidity-action-button:disabled {
+  background: rgba(0, 0, 0, 0.5);
+  border-color: rgba(76, 175, 80, 0.1);
+  color: rgba(76, 175, 80, 0.5);
+  cursor: not-allowed;
+}
+
+/* Matrix-style input fields */
+.liquidity-input-container {
+  background: rgba(0, 0, 0, 0.6);
+  border: 1px solid rgba(76, 175, 80, 0.3);
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 16px;
+  transition: all 0.3s ease;
+}
+
+.liquidity-input-container:focus-within {
+  border-color: rgba(76, 175, 80, 0.6);
+  box-shadow: 0 0 15px rgba(76, 175, 80, 0.2);
+}
+
+.liquidity-input input {
+  background: transparent;
+  border: none;
+  color: #4CAF50;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 1.25rem;
+  width: 100%;
+  outline: none;
+}
+
+.liquidity-input input::placeholder {
+  color: rgba(76, 175, 80, 0.3);
+}
+
+/* Position summary styling */
+.position-summary {
+  background: rgba(0, 0, 0, 0.6);
+  border: 1px solid rgba(76, 175, 80, 0.3);
+  border-radius: 8px;
+  padding: 16px;
+  margin-top: 24px;
+}
+
+.summary-title {
+  color: #4CAF50;
+  font-size: 1.1rem;
+  margin-bottom: 16px;
+  text-shadow: 0 0 8px rgba(76, 175, 80, 0.3);
+}
+
+.summary-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 0;
+  border-bottom: 1px solid rgba(76, 175, 80, 0.1);
+}
+
+.summary-item:last-child {
+  border-bottom: none;
+}
+
+.item-label {
+  color: rgba(76, 175, 80, 0.8);
+  font-size: 0.9rem;
+}
+
+.item-value {
+  color: #4CAF50;
+  font-weight: 500;
+}
+
+/* Animations */
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Loading states */
+.loading {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+  .liquidity-actions-container {
+    background: #2c3e50;
+  }
+
+  .liquidity-header h2 {
+    color: #ecf0f1;
+  }
+
+  .tab-switcher {
+    background: #34495e;
+  }
+
+  .tab-button {
+    color: #bdc3c7;
+  }
+
+  .tab-button.active {
+    background: #3498db;
+    color: white;
+  }
+
+  .token-input-group label {
+    color: #ecf0f1;
+  }
+
+  .token-input-group select,
+  .amount-input-group input {
+    background: #34495e;
+    border-color: #4a6278;
+    color: #ecf0f1;
+  }
+
+  .action-panel {
+    background: #34495e;
+  }
+
+  .fees-display {
+    background: #34495e;
+  }
+
+  .fees-display h3 {
+    color: #ecf0f1;
+  }
+
+  .fee-item {
+    background: #2c3e50;
+  }
+
+  .fee-label {
+    color: #bdc3c7;
+  }
+}
+
+/* Responsive design */
+@media (max-width: 600px) {
+  .liquidity-actions-container {
+    padding: 16px;
+    margin: 16px;
+  }
+
+  .token-selection {
+    grid-template-columns: 1fr;
+  }
+
+  .fees-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .input-with-button {
+    flex-direction: column;
+  }
+
+  .approve-button {
+    width: 100%;
+  }
+}
+
+/* Hover effects */
+.token-input-group select:hover,
+.amount-input-group input:hover {
+  border-color: #3498db;
+}
+
+.tab-button:hover:not(.active) {
+  background: rgba(52, 152, 219, 0.1);
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #888;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #555;
+}
+
+/* Toast customization */
+.Toastify__toast {
+  border-radius: 12px !important;
+}
+
+.Toastify__toast--success {
+  background: #2ecc71 !important;
+}
+
+.Toastify__toast--error {
+  background: #e74c3c !important;
+}
+
+.Toastify__toast--warning {
+  background: #f1c40f !important;
+}
+
+.Toastify__toast--info {
+  background: #3498db !important;
+}
+
+/* Card title and subtitle */
+.liquidity-title {
+  color: #4CAF50;
+  font-size: 1.5rem;
+  font-weight: 600;
+  font-family: 'JetBrains Mono', monospace;
+  text-shadow: 0 0 10px rgba(76, 175, 80, 0.5);
+  margin-bottom: 0.5rem;
+}
+
+.liquidity-subtitle {
+  color: rgba(76, 175, 80, 0.8);
+  font-size: 0.9rem;
+  font-family: 'JetBrains Mono', monospace;
+  margin-bottom: 2rem;
+}
+
+/* Pool information */
+.pool-info {
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(76, 175, 80, 0.3);
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 1.5rem;
+}
+
+.pool-info-label {
+  color: rgba(76, 175, 80, 0.7);
+  font-size: 0.9rem;
+  font-family: 'JetBrains Mono', monospace;
+  margin-bottom: 0.25rem;
+}
+
+.pool-info-value {
+  color: #4CAF50;
+  font-size: 1.1rem;
+  font-family: 'JetBrains Mono', monospace;
+  font-weight: 500;
+}
+
+/* Input fields */
+.liquidity-input-label {
+  color: rgba(76, 175, 80, 0.8);
+  font-size: 0.9rem;
+  font-family: 'JetBrains Mono', monospace;
+  margin-bottom: 0.5rem;
+}
+
+.liquidity-balance {
+  color: rgba(76, 175, 80, 0.6);
+  font-size: 0.8rem;
+  font-family: 'JetBrains Mono', monospace;
+}
+
+.liquidity-input {
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(76, 175, 80, 0.3);
+  color: #4CAF50;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 1.2rem;
+  padding: 12px;
+  width: 100%;
+  border-radius: 8px;
+}
+
+.liquidity-input::placeholder {
+  color: rgba(76, 175, 80, 0.3);
+}
+
+/* Position summary */
+.position-summary {
+  margin-top: 2rem;
+  padding-top: 1rem;
+  border-top: 1px solid rgba(76, 175, 80, 0.2);
+}
+
+.summary-title {
+  color: #4CAF50;
+  font-size: 1.1rem;
+  font-family: 'JetBrains Mono', monospace;
+  margin-bottom: 1rem;
+  text-shadow: 0 0 8px rgba(76, 175, 80, 0.3);
+}
+
+.summary-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.75rem;
+}
+
+.summary-label {
+  color: rgba(76, 175, 80, 0.7);
+  font-size: 0.9rem;
+  font-family: 'JetBrains Mono', monospace;
+}
+
+.summary-value {
+  color: #4CAF50;
+  font-size: 0.9rem;
+  font-family: 'JetBrains Mono', monospace;
+  font-weight: 500;
+}
+
+/* Fee information */
+.fee-info {
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(76, 175, 80, 0.3);
+  border-radius: 8px;
+  padding: 12px;
+  margin-top: 1rem;
+}
+
+.fee-label {
+  color: rgba(76, 175, 80, 0.7);
+  font-size: 0.8rem;
+  font-family: 'JetBrains Mono', monospace;
+}
+
+.fee-value {
+  color: #4CAF50;
+  font-size: 0.9rem;
+  font-family: 'JetBrains Mono', monospace;
+  font-weight: 500;
+  margin-top: 0.25rem;
+}
+
+/* Loading states */
+.loading-text {
+  color: rgba(76, 175, 80, 0.7);
+  font-size: 0.9rem;
+  font-family: 'JetBrains Mono', monospace;
+  animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+  0% { opacity: 0.6; }
+  50% { opacity: 1; }
+  100% { opacity: 0.6; }
+}
+
+.mode-title {
+  text-align: center;
+  margin: 20px 0;
+  padding: 15px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+}
+
+.mode-title h2 {
+  font-size: 24px;
+  color: #fff;
+  margin-bottom: 10px;
+}
+
+.mode-description {
+  color: #a0aec0;
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+.matrix-tabs {
+  background: rgba(255, 255, 255, 0.05);
+  padding: 4px;
+  border-radius: 12px;
+  display: flex;
+  gap: 4px;
+}
+
+.tab-btn {
+  flex: 1;
+  padding: 12px;
+  border-radius: 8px;
+  border: none;
+  background: transparent;
+  color: #a0aec0;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.tab-btn.active {
+  background: #2d3748;
+  color: #fff;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+} 

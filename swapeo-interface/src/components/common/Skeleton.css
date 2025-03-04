@@ -1,0 +1,31 @@
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    rgba(226, 232, 240, 0.6) 25%,
+    rgba(241, 245, 249, 0.6) 37%,
+    rgba(226, 232, 240, 0.6) 63%
+  );
+  background-size: 400% 100%;
+  animation: skeleton-loading 1.4s ease infinite;
+}
+
+.skeleton-text {
+  border-radius: 4px;
+}
+
+.skeleton-rectangular {
+  border-radius: 8px;
+}
+
+.skeleton-circular {
+  border-radius: 50%;
+}
+
+@keyframes skeleton-loading {
+  0% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0 50%;
+  }
+} 

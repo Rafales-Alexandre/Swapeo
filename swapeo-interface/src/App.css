@@ -1,0 +1,420 @@
+/* src/App.css */
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap');
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: 'JetBrains Mono', monospace;
+}
+
+body {
+  font-family: 'JetBrains Mono', monospace;
+  background: #000000;
+  color: #4CAF50;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Main container */
+.app {
+  max-width: 900px;
+  margin: 20px auto;
+  padding: 20px;
+  background: rgba(0, 0, 0, 0.8);
+  border: 1px solid rgba(76, 175, 80, 0.3);
+  border-radius: 12px;
+  box-shadow: 0 0 20px rgba(76, 175, 80, 0.2);
+}
+
+/* Buttons */
+button {
+  background: rgba(0, 0, 0, 0.7);
+  color: #4CAF50;
+  border: 1px solid rgba(76, 175, 80, 0.3);
+  padding: 10px 20px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-family: 'JetBrains Mono', monospace;
+}
+
+button:hover:not(:disabled) {
+  background: rgba(76, 175, 80, 0.1);
+  border-color: rgba(76, 175, 80, 0.6);
+  box-shadow: 0 0 15px rgba(76, 175, 80, 0.2);
+  transform: translateY(-2px);
+}
+
+button:disabled {
+  background: rgba(0, 0, 0, 0.5);
+  border-color: rgba(76, 175, 80, 0.1);
+  color: rgba(76, 175, 80, 0.5);
+  cursor: not-allowed;
+}
+
+/* Sections */
+.contract-interactions > div {
+  margin-bottom: 30px;
+  padding: 20px;
+  background: rgba(0, 0, 0, 0.6);
+  border: 1px solid rgba(76, 175, 80, 0.3);
+  border-radius: 10px;
+  box-shadow: 0 0 15px rgba(76, 175, 80, 0.1);
+}
+
+/* Headings */
+h2 {
+  font-size: 1.5rem;
+  margin-bottom: 15px;
+  color: #4CAF50;
+  text-shadow: 0 0 10px rgba(76, 175, 80, 0.3);
+}
+
+/* Inputs and selects */
+input[type="text"],
+select {
+  width: 100%;
+  max-width: 300px;
+  padding: 10px;
+  margin: 10px 0;
+  background: rgba(0, 0, 0, 0.6);
+  border: 1px solid rgba(76, 175, 80, 0.3);
+  border-radius: 6px;
+  font-size: 1rem;
+  color: #4CAF50;
+  transition: all 0.3s ease;
+  font-family: 'JetBrains Mono', monospace;
+}
+
+input[type="text"]:focus,
+select:focus {
+  border-color: rgba(76, 175, 80, 0.6);
+  box-shadow: 0 0 15px rgba(76, 175, 80, 0.2);
+  outline: none;
+}
+
+/* Paragraphs */
+p {
+  font-size: 1rem;
+  margin: 10px 0;
+  color: rgba(76, 175, 80, 0.8);
+}
+
+/* Container for actions */
+.contract-interactions {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* App container */
+.app-container {
+  min-height: 100vh;
+  padding: 2rem;
+  position: relative;
+  background: rgba(0, 0, 0, 0.9);
+  backdrop-filter: blur(10px);
+  z-index: 2;
+}
+
+/* Header */
+.app-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+  padding: 1rem 2rem;
+  background: rgba(0, 0, 0, 0.8);
+  border-bottom: 1px solid rgba(76, 175, 80, 0.3);
+  backdrop-filter: blur(10px);
+}
+
+.app-title {
+  font-size: 1.75rem;
+  font-weight: 600;
+  color: #4CAF50;
+  text-shadow: 0 0 10px rgba(76, 175, 80, 0.5);
+}
+
+/* Cards grid */
+.cards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+  gap: 1.5rem;
+  position: relative;
+  z-index:3;
+}
+
+/* Card styles */
+.card {
+  position: relative;
+  z-index: 4;
+  background: rgba(0, 0, 0, 0.7);
+  border: 1px solid rgba(76, 175, 80, 0.3);
+  border-radius: 12px;
+  padding: 1.5rem;
+  transition: all 0.3s ease;
+}
+
+.card:hover {
+  border-color: rgba(76, 175, 80, 0.6);
+  box-shadow: 0 0 20px rgba(76, 175, 80, 0.2);
+}
+
+/* Animations */
+@keyframes glowPulse {
+  0% { box-shadow: 0 0 5px rgba(76, 175, 80, 0.2); }
+  50% { box-shadow: 0 0 20px rgba(76, 175, 80, 0.4); }
+  100% { box-shadow: 0 0 5px rgba(76, 175, 80, 0.2); }
+}
+
+@keyframes textGlow {
+  0% { text-shadow: 0 0 5px rgba(76, 175, 80, 0.2); }
+  50% { text-shadow: 0 0 10px rgba(76, 175, 80, 0.4); }
+  100% { text-shadow: 0 0 5px rgba(76, 175, 80, 0.2); }
+}
+
+/* Style spécifique pour TokenSwap */
+.token-swap {
+  background: #f9f9ff;
+}
+
+.token-swap select,
+.token-swap input {
+  display: block;
+  width: 100%;
+  max-width: 250px;
+}
+
+.token-swap button {
+  margin: 10px 0;
+}
+
+/* Style spécifique pour LiquidityActions */
+.liquidity-actions {
+  background: #fff9f9;
+}
+
+.liquidity-actions select,
+.liquidity-actions input {
+  display: block;
+  width: 100%;
+  max-width: 250px;
+}
+
+.liquidity-actions button {
+  margin: 10px 0;
+}
+
+/* Responsive design */
+@media (max-width: 600px) {
+  .app {
+    margin: 10px;
+    padding: 15px;
+  }
+
+  h2 {
+    font-size: 1.2rem;
+  }
+
+  input[type="text"],
+  select {
+    max-width: 100%;
+  }
+
+  button {
+    width: 100%;
+    padding: 12px;
+  }
+}
+
+/* Toastify personnalisation */
+.Toastify__toast {
+  border-radius: 8px;
+  font-family: 'JetBrains Mono', monospace;
+}
+
+.Toastify__toast--success {
+  background: #28a745;
+}
+
+.Toastify__toast--error {
+  background: #dc3545;
+}
+
+.app-wrapper {
+  min-height: 100vh;
+  background: var(--background);
+}
+
+.main-content {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 0 24px;
+}
+
+/* Add blur effect when modal is open */
+.blur-background {
+  filter: blur(4px);
+  pointer-events: none;
+}
+
+/* Token selection modal */
+.token-modal {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: var(--background-light);
+  border-radius: 20px;
+  padding: 20px;
+  width: 100%;
+  max-width: 420px;
+  max-height: 80vh;
+  overflow-y: auto;
+  z-index: 1000;
+}
+
+.token-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.token-search {
+  background: var(--background-lighter);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 12px;
+  width: 100%;
+  color: var(--text-primary);
+  margin-bottom: 20px;
+}
+
+.token-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.token-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.token-item:hover {
+  background: var(--background-lighter);
+}
+
+.header-content {
+  display: flex;
+  align-items: center;
+  gap: 2rem;
+}
+
+.header-nav {
+  display: flex;
+  gap: 1.5rem;
+  align-items: center;
+}
+
+.nav-link {
+  color: rgba(76, 175, 80, 0.8);
+  text-decoration: none;
+  font-size: 1rem;
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  transition: all 0.3s ease;
+}
+
+.nav-link:hover {
+  color: #4CAF50;
+  background: rgba(76, 175, 80, 0.1);
+  text-shadow: 0 0 8px rgba(76, 175, 80, 0.3);
+}
+
+.nav-link.active {
+  color: #4CAF50;
+  background: rgba(76, 175, 80, 0.15);
+  border: 1px solid rgba(76, 175, 80, 0.3);
+}
+
+.app-logo {
+  width: 32px;
+  height: 32px;
+}
+
+.welcome-card {
+  max-width: 480px;
+  margin: 4rem auto;
+  animation: slideUp 0.5s ease-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (max-width: 768px) {
+  .app-container {
+    padding: 1rem;
+  }
+  
+  .cards-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Matrix-style text effects */
+.card-title {
+  color: #4CAF50;
+  text-shadow: 0 0 10px rgba(76, 175, 80, 0.5);
+}
+
+.card-subtitle {
+  color: rgba(76, 175, 80, 0.7);
+}
+
+/* Add glowing effects on hover */
+.card:hover .card-icon {
+  box-shadow: 0 0 15px rgba(76, 175, 80, 0.3);
+}
+
+.card {
+  animation: glowPulse 2s infinite;
+}
+
+.root-container {
+  position: relative;
+  min-height: 100vh;
+}
+
+.app-container {
+  position: relative;
+  z-index: 2;
+  pointer-events: auto;
+}

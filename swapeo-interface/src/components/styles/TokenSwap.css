@@ -1,0 +1,365 @@
+.token-swap {
+  background: white;
+  border-radius: 12px;
+  padding: 24px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  max-width: 480px;
+  margin: 0 auto;
+}
+
+.token-swap h2 {
+  margin: 0 0 24px;
+  color: #4CAF50;
+  text-align: center;
+}
+
+.token-inputs {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.token-select,
+.amount-input {
+  width: 100%;
+  padding: 12px;
+  border: 1px solid #dcdfe6;
+  border-radius: 8px;
+  font-size: 14px;
+  transition: border-color 0.2s;
+}
+
+.token-select:focus,
+.amount-input:focus {
+  border-color: #3498db;
+  outline: none;
+}
+
+.token-select:disabled,
+.amount-input:disabled {
+  background-color: #f5f7fa;
+  cursor: not-allowed;
+}
+
+.action-buttons {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  margin-bottom: 24px;
+}
+
+.received-amount {
+  text-align: center;
+  padding: 16px;
+  background: #f8f9fa;
+  border-radius: 8px;
+  margin-top: 16px;
+}
+
+.received-amount p {
+  margin: 0;
+  color: #4CAF50;
+  font-weight: 500;
+}
+
+.swap-container {
+  max-width: 480px;
+  margin: 0 auto;
+  padding: 8px;
+  background: var(--background-light);
+  border-radius: 24px;
+  border: 1px solid var(--border);
+}
+
+.swap-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px;
+}
+
+.swap-header h2 {
+  font-size: 20px;
+  font-weight: 500;
+}
+
+.settings-button {
+  width: 32px;
+  height: 32px;
+  border-radius: 12px;
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.settings-button:hover {
+  background: var(--background-lighter);
+  color: var(--text-primary);
+}
+
+.swap-form {
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.token-input-container {
+  background: rgba(0, 0, 0, 0.6);
+  border: 1px solid rgba(76, 175, 80, 0.3);
+  border-radius: 8px;
+  padding: 16px;
+  transition: all 0.3s ease;
+}
+
+.token-input-container:focus-within {
+  border-color: rgba(76, 175, 80, 0.6);
+  box-shadow: 0 0 15px rgba(76, 175, 80, 0.2);
+}
+
+.token-input-header {
+  display: flex;
+  justify-content: space-between;
+  color: var(--text-secondary);
+  font-size: 14px;
+  margin-bottom: 8px;
+}
+
+.token-input-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+.token-input-content input {
+  background: transparent;
+  border: none;
+  color: #4CAF50;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 1.25rem;
+  width: 100%;
+  outline: none;
+}
+
+.token-input-content input::placeholder {
+  color: rgba(76, 175, 80, 0.3);
+}
+
+.token-select-button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  background: rgba(0, 0, 0, 0.6);
+  border: 1px solid rgba(76, 175, 80, 0.3);
+  border-radius: 8px;
+  color: #4CAF50;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.token-select-button:hover {
+  background: rgba(76, 175, 80, 0.1);
+  border-color: rgba(76, 175, 80, 0.6);
+  box-shadow: 0 0 15px rgba(76, 175, 80, 0.2);
+}
+
+.token-icon {
+  font-size: 20px;
+}
+
+.dropdown-icon {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.swap-direction-button {
+  width: 36px;
+  height: 36px;
+  margin: -8px auto;
+  border-radius: 50%;
+  border: 1px solid rgba(76, 175, 80, 0.3);
+  background: rgba(0, 0, 0, 0.7);
+  color: #4CAF50;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+  z-index: 1;
+}
+
+.swap-direction-button:hover {
+  background: rgba(76, 175, 80, 0.1);
+  border-color: rgba(76, 175, 80, 0.6);
+  box-shadow: 0 0 15px rgba(76, 175, 80, 0.2);
+}
+
+.swap-button {
+  width: 100%;
+  padding: 12px 24px;
+  background: rgba(0, 0, 0, 0.7);
+  border: 1px solid rgba(76, 175, 80, 0.3);
+  border-radius: 8px;
+  color: #4CAF50;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+  transition: all 0.3s ease;
+}
+
+.swap-button:not(:disabled):hover {
+  background: rgba(76, 175, 80, 0.1);
+  border-color: rgba(76, 175, 80, 0.6);
+  box-shadow: 0 0 15px rgba(76, 175, 80, 0.2);
+}
+
+.swap-button:disabled {
+  background: rgba(0, 0, 0, 0.5);
+  border-color: rgba(76, 175, 80, 0.1);
+  color: rgba(76, 175, 80, 0.5);
+  cursor: not-allowed;
+}
+
+/* Card title and subtitle */
+.token-exchange-title {
+  color: #4CAF50;
+  font-size: 1.5rem;
+  font-weight: 600;
+  font-family: 'JetBrains Mono', monospace;
+  text-shadow: 0 0 10px rgba(76, 175, 80, 0.5);
+  margin-bottom: 0.5rem;
+}
+
+.token-exchange-subtitle {
+  color: rgba(76, 175, 80, 0.8);
+  font-size: 0.9rem;
+  font-family: 'JetBrains Mono', monospace;
+  margin-bottom: 2rem;
+}
+
+/* Input labels and values */
+.token-input-label {
+  color: rgba(76, 175, 80, 0.8);
+  font-size: 0.9rem;
+  font-family: 'JetBrains Mono', monospace;
+  margin-bottom: 0.5rem;
+}
+
+.token-balance {
+  color: rgba(76, 175, 80, 0.6);
+  font-size: 0.8rem;
+  font-family: 'JetBrains Mono', monospace;
+}
+
+/* Input field */
+.amount-input {
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(76, 175, 80, 0.3);
+  color: #4CAF50;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 1.2rem;
+  padding: 12px;
+  width: 100%;
+  border-radius: 8px;
+}
+
+.amount-input::placeholder {
+  color: rgba(76, 175, 80, 0.3);
+}
+
+/* Exchange rate info */
+.exchange-rate {
+  color: rgba(76, 175, 80, 0.7);
+  font-size: 0.9rem;
+  font-family: 'JetBrains Mono', monospace;
+  padding: 8px 0;
+  border-top: 1px solid rgba(76, 175, 80, 0.2);
+  margin-top: 1rem;
+}
+
+/* Action buttons */
+.approve-button, .swap-button {
+  background: rgba(0, 0, 0, 0.6);
+  border: 1px solid rgba(76, 175, 80, 0.3);
+  color: #4CAF50;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 1rem;
+  padding: 12px 24px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.approve-button:hover, .swap-button:hover:not(:disabled) {
+  background: rgba(76, 175, 80, 0.1);
+  border-color: rgba(76, 175, 80, 0.6);
+  box-shadow: 0 0 15px rgba(76, 175, 80, 0.2);
+}
+
+/* Error messages */
+.error-message {
+  color: #FF5252;
+  font-size: 0.9rem;
+  font-family: 'JetBrains Mono', monospace;
+  margin-top: 0.5rem;
+  text-shadow: 0 0 8px rgba(255, 82, 82, 0.3);
+}
+
+.stat-value {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #4CAF50;
+  margin-bottom: 0.25rem;
+}
+
+.nav-link {
+  text-decoration: none;
+  color: #4CAF50;
+  padding: 0.5rem 1rem;
+  border-radius: 0.375rem;
+  transition: all 0.2s;
+}
+
+.pool-reserves-panel {
+  background-color: rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 16px;
+}
+
+.reserves-display {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.reserves-label {
+  font-size: 14px;
+  color: #888;
+}
+
+.reserves-values {
+  display: flex;
+  justify-content: space-between;
+  font-size: 16px;
+  color: #fff;
+}
+
+.max-amount {
+  color: rgba(76, 175, 80, 0.6);
+  font-size: 0.8rem;
+  margin-left: 8px;
+} 

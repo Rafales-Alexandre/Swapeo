@@ -1,0 +1,53 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono&display=swap');
+
+:root {
+  --primary: #3B82F6;
+  --primary-light: #60A5FA;
+  --primary-dark: #2563EB;
+  --secondary: #10B981;
+  --secondary-light: #34D399;
+  --secondary-dark: #059669;
+  --error: #EF4444;
+  --warning: #F59E0B;
+  --info: #6366F1;
+  --background: #F9FAFB;
+  --text-primary: #111827;
+  --text-secondary: #4B5563;
+  --border: #E5E7EB;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  color: var(--text-primary);
+  background: var(--background);
+}
+
+input, select, button {
+  font-family: inherit;
+}
+
+.glass-effect {
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(8px);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #111827;
+    --text-primary: #F9FAFB;
+    --text-secondary: #D1D5DB;
+    --border: #374151;
+  }
+
+  .glass-effect {
+    background: rgba(17, 24, 39, 0.8);
+  }
+} 

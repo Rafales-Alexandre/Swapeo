@@ -1,0 +1,28 @@
+{
+  "name": "swapeo-backend",
+  "version": "1.0.0",
+  "description": "Backend pour le protocole Swapeo",
+  "main": "dist/app.js",
+  "scripts": {
+    "start": "node dist/app.js",
+    "dev": "ts-node src/app.ts",
+    "build": "tsc",
+    "watch": "tsc -w"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "@types/express": "^5.0.0",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
+    "ethers": "^6.13.5",
+    "express": "^4.21.2",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.8.2"
+  },
+  "devDependencies": {
+    "@types/cors": "^2.8.17"
+  }
+}
