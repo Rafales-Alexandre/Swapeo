@@ -1,36 +1,57 @@
 import React, { useState } from 'react';
 import './styles/ConnectWalletButton.css';
-import { requestAccount } from '../utils/contractServices';
+
+type UserRole = 'trader' | 'provider';
 
 interface ConnectWalletButtonProps {
-  setAccount: (account: string | null) => void;
+  setAccount: (account: string, role: UserRole) => void;
 }
 
 const ConnectWalletButton: React.FC<ConnectWalletButtonProps> = ({ setAccount }) => {
-  const [isLoading, setIsLoading] = useState(false);
+  const [isConnecting, setIsConnecting] = useState(false);
+  const [selectedRole, setSelectedRole] = useState<UserRole>('trader');
 
   const handleConnect = async () => {
-    setIsLoading(true);
+    setIsConnecting(true);
     try {
-      const account = await requestAccount();
-      if (account) {
-        setAccount(account);
+      if (typeof window.ethereum !== 'undefined') {
+        const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+        setAccount(accounts[0], selectedRole);
+      } else {
+        alert('Veuillez installer MetaMask pour utiliser cette application');
       }
     } catch (error) {
-      console.error("Error connecting wallet:", error);
+      console.error('Erreur de connexion:', error);
+      alert('Erreur lors de la connexion au wallet');
     } finally {
-      setIsLoading(false);
+      setIsConnecting(false);
     }
   };
 
   return (
-    <button 
-      className={`connect-wallet-btn ${isLoading ? 'loading' : ''}`}
-      onClick={handleConnect}
-      disabled={isLoading}
-    >
-      {isLoading ? 'Connecting...' : 'Connect Wallet'}
-    </button>
+    <div className="connect-wallet-container">
+      <div className="role-selector">
+        <button
+          className={`role-button ${selectedRole === 'trader' ? 'active' : ''}`}
+          onClick={() => setSelectedRole('trader')}
+        >
+          Trader
+        </button>
+        <button
+          className={`role-button ${selectedRole === 'provider' ? 'active' : ''}`}
+          onClick={() => setSelectedRole('provider')}
+        >
+          Provider
+        </button>
+      </div>
+      <button
+        className={`connect-wallet-button ${isConnecting ? 'connecting' : ''}`}
+        onClick={handleConnect}
+        disabled={isConnecting}
+      >
+        {isConnecting ? 'Connexion...' : 'Connecter Wallet'}
+      </button>
+    </div>
   );
 };
 

@@ -13,8 +13,10 @@ const TokenSwap: React.FC<{ account: string }> = ({ account }) => {
   const [fromAmount, setFromAmount] = useState('');
   const [toAmount, setToAmount] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [loadingStep, setLoadingStep] = useState<'idle' | 'approving' | 'swapping'>('idle');
   const [isApproved, setIsApproved] = useState(false);
   const [exchangeRate, setExchangeRate] = useState('0');
+  const [isSwapping, setIsSwapping] = useState(false);
   const [balances, setBalances] = useState({
     tokenA: '0',
     tokenB: '0'
@@ -31,20 +33,14 @@ const TokenSwap: React.FC<{ account: string }> = ({ account }) => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        console.log("Fetching data for account:", account);
         
         // Utiliser les anciennes adresses pour les balances
         const balanceA = await getTokenBalance(TOKENS.TOKEN_A_OLD, account);
         const balanceB = await getTokenBalance(TOKENS.TOKEN_B_OLD, account);
         
-        console.log("Balances fetched:", {
-          tokenA: balanceA,
-          tokenB: balanceB
-        });
         
         // Les réserves utilisent maintenant les nouvelles adresses dans getLiquidityPosition
         const reserves = await getLiquidityPosition(account);
-        console.log("Pool reserves fetched:", reserves);
         
         setBalances({
           tokenA: balanceA,
@@ -187,45 +183,24 @@ const TokenSwap: React.FC<{ account: string }> = ({ account }) => {
     updateRate();
   }, [fromAmount, fromToken, toToken, poolReserves]);
 
-  const handleApprove = async () => {
-    if (!fromAmount || isNaN(Number(fromAmount))) {
-      toast.error("Veuillez entrer un montant valide");
-      return;
-    }
-
-    setIsLoading(true);
-    try {
-      await approveToken(fromToken.address, fromAmount);
-      toast.success("Approbation réussie!");
-      setIsApproved(true);
-    } catch (error: any) {
-      console.error("Error approving:", error);
-      toast.error(error.message || "Erreur lors de l'approbation");
-      setIsApproved(false);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   const handleSwap = async () => {
     if (!fromAmount || !toAmount || isNaN(Number(fromAmount))) {
       toast.error("Veuillez entrer des montants valides");
       return;
     }
 
-    if (!isApproved) {
-      toast.error("Veuillez d'abord approuver la transaction");
-      return;
-    }
-
     setIsLoading(true);
     try {
-      console.log("Swapping tokens:", {
-        fromToken: fromToken.label,
-        toToken: toToken.label,
-        amount: fromAmount
-      });
+      // Si les tokens ne sont pas approuvés, on les approuve d'abord
+      if (!isApproved) {
+        setLoadingStep('approving');
+        await approveToken(fromToken.address, fromAmount);
+        toast.success("Approbation réussie!");
+        setIsApproved(true);
+      }
       
+      // Puis on effectue l'échange
+      setLoadingStep('swapping');
       await swapTokens(fromToken.address, toToken.address, fromAmount);
       toast.success("Échange réussi!");
       setFromAmount('');
@@ -237,20 +212,27 @@ const TokenSwap: React.FC<{ account: string }> = ({ account }) => {
       const balanceB = await getTokenBalance(TOKENS.TOKEN_B_OLD, account);
       setBalances({ tokenA: balanceA, tokenB: balanceB });
     } catch (error: any) {
-      console.error("Error swapping:", error);
-      toast.error(error.message || "Erreur lors de l'échange");
+      console.error("Error during swap process:", error);
+      toast.error(error.message || "Erreur lors de l'opération");
     } finally {
       setIsLoading(false);
+      setLoadingStep('idle');
     }
   };
 
   const switchTokens = () => {
+    setIsSwapping(true);
     setFromAmount('');
     setToAmount('');
     setIsApproved(false);
     const tempToken = { ...fromToken };
     setFromToken({ ...toToken });
     setToToken(tempToken);
+    
+    // Retirer la classe d'animation après la fin de l'animation
+    setTimeout(() => {
+      setIsSwapping(false);
+    }, 300);
   };
 
   const getBalance = (token: Token) => {
@@ -265,128 +247,80 @@ const TokenSwap: React.FC<{ account: string }> = ({ account }) => {
   };
 
   return (
-    <div className="token-exchange-container">
-      {/* Pool Reserves Display */}
-      <div className="pool-reserves-panel">
-        <div className="reserves-display">
-          <span className="reserves-label">Réserves de la Pool</span>
-          <div className="reserves-values">
-            <span>{formatNumber(poolReserves.tokenAAmount)} TokenA</span>
-            <span>{formatNumber(poolReserves.tokenBAmount)} TokenB</span>
+    <div className="token-swap-container">
+      <div className={`token-input-container ${isSwapping ? 'swapping' : ''}`}>
+        <div className="token-input-header">
+          <div className="token-select" data-tooltip="Sélectionner le token d'entrée">
+            <span>{fromToken.label}</span>
           </div>
+        </div>
+        <div className="input-with-max">
+          <input
+            type="text"
+            className="token-input"
+            placeholder="0.0"
+            value={fromAmount}
+            onChange={handleAmountChange}
+            disabled={isLoading}
+          />
+          <button 
+            className="max-button"
+            onClick={() => handleAmountChange({ target: { value: getBalance(fromToken) } } as React.ChangeEvent<HTMLInputElement>)}
+            data-tooltip="Utiliser le solde maximum"
+          >
+            MAX
+          </button>
         </div>
       </div>
 
-      {/* User Balances Display */}
-      <div className="pool-reserves-panel">
-        <div className="reserves-display">
-          <span className="reserves-label">Vos Balances</span>
-          <div className="reserves-values">
-            <span>{formatNumber(balances.tokenA)} TokenA</span>
-            <span>/</span>
-            <span>{formatNumber(balances.tokenB)} TokenB</span>
-          </div>
-        </div>
+      <div className="swap-arrow" onClick={switchTokens}>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <path d="M7 10L12 5L17 10M17 14L12 19L7 14" />
+        </svg>
       </div>
 
-      {/* Exchange Rate Display */}
-      <div className="exchange-rate-panel">
-        <div className="rate-display">
-          <span className="rate-label">Taux d'échange </span>
-          <span className="rate-value">1 {fromToken.label} = {formatNumber(exchangeRate)} {toToken.label}</span>
+      <div className={`token-input-container ${isSwapping ? 'swapping' : ''}`}>
+        <div className="token-input-header">
+          <div className="token-select" data-tooltip="Sélectionner le token de sortie">
+            <span>{toToken.label}</span>
+          </div>
         </div>
+        <input
+          type="text"
+          className="token-input"
+          placeholder="0.0"
+          value={toAmount}
+          readOnly
+          disabled={isLoading}
+        />
       </div>
 
-      {/* Token Input Panels */}
-      <div className="token-panels">
-        <div className="token-input-panel">
-          <div className="panel-header">
-            <span>Vous payez </span>
-            <span className="balance-display">
-              Balance: {formatNumber(getBalance(fromToken))} {fromToken.label}
-            </span>
-          </div>
-          <div className="input-container">
-            <input
-              type="text"
-              value={fromAmount}
-              onChange={handleAmountChange}
-              placeholder="0.0"
-              className="amount-input"
-              disabled={isLoading}
-            />
-            <button className="token-select-btn">
-              {fromToken.label}
-            </button>
-          </div>
+      {exchangeRate !== '0' && (
+        <div className="exchange-rate">
+          1 {fromToken.label} = {formatNumber(exchangeRate)} {toToken.label}
         </div>
+      )}
 
-        <div className="swap-direction-btn" onClick={switchTokens}>
-          <span className="swap-icon">⇅</span>
-        </div>
-
-        <div className="token-input-panel">
-          <div className="panel-header">
-            <span>Vous recevez </span>
-            <span className="balance-display">
-              Balance: {formatNumber(getBalance(toToken))} {toToken.label}
-              <span className="max-amount">
-                (Max disponible: {formatNumber(toToken.address === TOKENS.TOKEN_A 
-                  ? poolReserves.tokenAAmount 
-                  : poolReserves.tokenBAmount)} {toToken.label})
-              </span>
-            </span>
-          </div>
-          <div className="input-container">
-            <input
-              type="text"
-              value={toAmount}
-              placeholder="0.0"
-              className="amount-input"
-              disabled={true}
-            />
-            <button className="token-select-btn">
-              {toToken.label}
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* Action Buttons */}
-      <div className="action-buttons">
-        <button 
-          className={`approve-btn ${isApproved ? 'approved' : ''}`}
-          onClick={handleApprove}
-          disabled={isLoading || !fromAmount || !validateAmount(fromAmount)}
-        >
-          {isLoading ? 'En cours...' : isApproved ? 'Approuvé ✓' : 'Approve'}
-        </button>
-        <button 
-          className="swap-btn" 
+      <div className="swap-actions">
+        <button
+          className={`swap-button ${isLoading ? 'loading' : ''}`}
           onClick={handleSwap}
-          disabled={isLoading || !fromAmount || !toAmount || !isApproved || !validateAmount(fromAmount)}
+          disabled={isLoading || !fromAmount}
         >
-          {isLoading ? 'En cours...' : 'Swap'}
+          {isLoading 
+            ? (loadingStep === 'approving' ? 'Approbation en cours...' : 'Échange en cours...')
+            : 'Échanger'}
         </button>
       </div>
 
-      {/* Transaction Details */}
-      <div className="transaction-details">
-        <div className="detail-item">
-          <span>Minimum reçu </span>
-          <span>{formatNumber(toAmount)} {toToken.label}</span>
+      {isLoading && (
+        <div className="loading-overlay">
+          <div className="loading-spinner" />
+          <div className="loading-message">
+            {loadingStep === 'approving' ? 'Approbation de la transaction...' : 'Échange en cours...'}
+          </div>
         </div>
-        <div className="detail-item">
-          <span>Taux d'échange </span>
-          <span>1 {fromToken.label} = {formatNumber(exchangeRate)} {toToken.label}</span>
-        </div>
-        <div className="detail-item">
-          <span>Impact sur le prix </span>
-          <span>{fromAmount && toAmount ? 
-            formatNumber((Number(fromAmount) / Number(poolReserves.tokenAAmount)) * 100) 
-            : '0'}%</span>
-        </div>
-      </div>
+      )}
     </div>
   );
 };

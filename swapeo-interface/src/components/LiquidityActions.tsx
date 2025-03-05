@@ -30,6 +30,17 @@ const LiquidityActions: React.FC<{ account: string }> = ({ account }) => {
     tokenB: '0'
   });
 
+  // Fonction pour mettre à jour la part de la pool
+  const updatePoolShare = async () => {
+    try {
+      const pos = await getLiquidityPosition(account);
+      setPosition(pos);
+      setPoolInfo(prev => ({ ...prev, share: pos.poolShare }));
+    } catch (error) {
+      console.error("Erreur lors de la mise à jour de la part de la pool:", error);
+    }
+  };
+
   // Fonction pour formater les nombres avec 4 décimales maximum
   const formatNumber = (value: string | number) => {
     const num = typeof value === 'string' ? Number(value) : value;
@@ -61,7 +72,7 @@ const LiquidityActions: React.FC<{ account: string }> = ({ account }) => {
     const rate = Number(poolInfo.rate);
     
     if (totalA === 0 || totalB === 0) {
-      // Premier dépôt, on vérifie si le montant est dans les limites des balances
+      // Premier dépôt, on utilise le ratio 1:1
       const maxAmount = calculateMaxAmount(isTokenA);
       if (Number(amount) > maxAmount) {
         return formatNumber(maxAmount.toString());
@@ -70,11 +81,28 @@ const LiquidityActions: React.FC<{ account: string }> = ({ account }) => {
     }
     
     const inputAmount = Number(amount);
-    const requiredAmount = isTokenA ? inputAmount * rate : inputAmount / rate;
     
-    // Vérifier si le montant calculé est dans les limites des balances
+    // Vérification des valeurs invalides
+    if (isNaN(inputAmount) || inputAmount <= 0) {
+      return '0';
+    }
+    
+    // Calcul avec une meilleure précision
+    let requiredAmount;
+    if (isTokenA) {
+      requiredAmount = inputAmount * rate;
+    } else {
+      requiredAmount = inputAmount / rate;
+    }
+    
+    // Vérification des limites
     const maxRequired = calculateMaxAmount(!isTokenA);
-    return formatNumber(Math.min(requiredAmount, maxRequired).toString());
+    if (requiredAmount > maxRequired) {
+      requiredAmount = maxRequired;
+    }
+    
+    // Formatage avec plus de précision
+    return formatNumber(requiredAmount.toString());
   };
 
   // Gestionnaire pour la mise à jour des montants avec validation améliorée
@@ -126,9 +154,8 @@ const LiquidityActions: React.FC<{ account: string }> = ({ account }) => {
         setFeesA(await getCollectedFees(tokenA, account));
         setFeesB(await getCollectedFees(tokenB, account));
 
-        // Récupérer la position
-        const pos = await getLiquidityPosition(account);
-        setPosition(pos);
+        // Récupérer la position et mettre à jour la part
+        await updatePoolShare();
       } catch (error) {
         console.error("Error fetching data:", error);
       }
@@ -177,12 +204,6 @@ const LiquidityActions: React.FC<{ account: string }> = ({ account }) => {
         // Récupérer les balances de l'utilisateur connecté
         const balanceA = await getTokenBalance(TOKEN_OPTIONS[0].address, account);
         const balanceB = await getTokenBalance(TOKEN_OPTIONS[1].address, account);
-
-        console.log("Balances récupérées:", {
-          tokenA: balanceA,
-          tokenB: balanceB,
-          account: account
-        });
 
         setBalances({
           tokenA: balanceA,
@@ -253,21 +274,24 @@ const LiquidityActions: React.FC<{ account: string }> = ({ account }) => {
       return;
     }
 
-    // Vérifier que les montants respectent exactement le ratio du pool
+    // Vérification du ratio avec une tolérance plus large
     const expectedAmount2 = calculateRequiredAmount(amount1, true);
     const ratio = Math.abs(Number(amount2) - Number(expectedAmount2)) / Number(expectedAmount2);
-    const tolerance = 0.001; // 0.1% de tolérance maximum
+    const tolerance = 0.01; // Augmentation de la tolérance à 1%
 
     if (ratio > tolerance && Number(poolInfo.totalTokenA) > 0) {
-      toast.error(`Les montants doivent respecter exactement le ratio du pool (${formatNumber(poolInfo.rate)} TKB par TKA)`);
-      // Correction automatique des montants
-      setAmount2(expectedAmount2);
-      return;
+      toast.warning(`Le ratio n'est pas optimal. Montant recommandé pour le token B: ${formatNumber(expectedAmount2)}`);
+      // On ne bloque plus la transaction, on laisse l'utilisateur décider
     }
 
-    // Vérifier les balances
-    if (Number(amount1) > Number(balances.tokenA) || Number(amount2) > Number(balances.tokenB)) {
-      toast.error('Balance insuffisante pour effectuer ce dépôt');
+    // Vérification des balances avec une marge de sécurité
+    const balanceA = Number(balances.tokenA);
+    const balanceB = Number(balances.tokenB);
+    const amount1Num = Number(amount1);
+    const amount2Num = Number(amount2);
+    
+    if (amount1Num > balanceA * 0.99 || amount2Num > balanceB * 0.99) {
+      toast.error('Balance insuffisante pour effectuer ce dépôt (prévoir 1% pour les frais)');
       return;
     }
 
@@ -282,6 +306,7 @@ const LiquidityActions: React.FC<{ account: string }> = ({ account }) => {
       toast.success('Liquidité déposée avec succès !');
       setAmount1('');
       setAmount2('');
+      await updatePoolShare(); // Mise à jour de la part après le dépôt
     } catch (error) {
       toast.error(`Échec du dépôt : ${(error as Error).message}`);
     } finally {
@@ -311,6 +336,7 @@ const LiquidityActions: React.FC<{ account: string }> = ({ account }) => {
       );
       toast.success('Liquidity withdrawn successfully!');
       setAmount1('');
+      await updatePoolShare(); // Mise à jour de la part après le retrait
     } catch (error) {
       toast.error(`Withdrawal failed: ${(error as Error).message}`);
     } finally {
@@ -332,173 +358,140 @@ const LiquidityActions: React.FC<{ account: string }> = ({ account }) => {
 
   return (
     <div className="liquidity-container">
-      {/* Tab Navigation */}
-      <div className="liquidity-tabs">
-        <button 
-          className={`tab-btn ${activeTab === 'add' ? 'active' : ''}`}
+      <div className="tabs-container">
+        <button
+          className={`tab-button ${activeTab === 'add' ? 'active' : ''}`}
           onClick={() => setActiveTab('add')}
         >
-          Add Liquidity
+          Ajouter de la liquidité
         </button>
-        <button 
-          className={`tab-btn ${activeTab === 'remove' ? 'active' : ''}`}
+        <button
+          className={`tab-button ${activeTab === 'remove' ? 'active' : ''}`}
           onClick={() => setActiveTab('remove')}
         >
-          Remove Liquidity
+          Retirer de la liquidité
         </button>
       </div>
 
-      {/* Mode Title */}
-      <div className="mode-title">
-        <h2>{activeTab === 'add' ? 'Ajouter de la Liquidité' : 'Retirer de la Liquidité'}</h2>
-        <p className="mode-description">
-          {activeTab === 'add' 
-            ? 'Déposez une paire de tokens pour fournir de la liquidité et gagner des frais de trading' 
-            : 'Retirez vos tokens et arrêtez de fournir de la liquidité pour cette paire'}
-        </p>
-      </div>
-
-      {/* Test Tokens Button */}
-      <div className="test-tokens-section">
-        <button 
-          className="mint-btn"
-          onClick={handleMintTokens}
-          disabled={isLoading}
-        >
-          {isLoading ? 'Minting...' : 'Get Test Tokens'}
-        </button>
-      </div>
-
-      {/* Pool Information avec indicateur de ratio */}
-      <div className="pool-info">
-        <div className="info-row">
-          <span className="info-label">Pool Rate</span>
-          <span className="info-value">1 TKA = {formatNumber(poolInfo.rate)} TKB</span>
-        </div>
-        <div className="info-row">
-          <span className="info-label">Your Pool Share</span>
-          <span className="info-value">{formatNumber(poolInfo.share)}%</span>
-        </div>
-        {activeTab === 'add' && Number(amount1) > 0 && (
-          <div className="info-row ratio-indicator">
-            <span className="info-label">Ratio Status</span>
-            <span className={`info-value ${poolInfo.optimalRatio ? 'optimal' : 'suboptimal'}`}>
-              {poolInfo.optimalRatio ? '✓ Optimal' : '⚠️ Ajustement nécessaire'}
-            </span>
-          </div>
-        )}
-      </div>
-
-      {/* Token Input Section avec boutons Max */}
-      <div className="token-input-section">
-        <div className="input-group">
-          <div className="input-header">
-            <span>{activeTab === 'add' ? 'Montant à déposer' : 'Montant à retirer'}</span>
-            <span className="balance">
-              Balance: {formatNumber(balances.tokenA)} TKA
-              {activeTab === 'add' && (
-                <button 
-                  className="max-button" 
-                  onClick={() => handleSetMaxAmount(true)}
-                  disabled={isLoading}
-                >
-                  Max
-                </button>
-              )}
+      <div className="token-inputs">
+        <div className="token-input-container">
+          <div className="token-input-header">
+            <span className="token-label">Token A</span>
+            <span className="token-balance">
+              Solde: {formatNumber(balances.tokenA)}
             </span>
           </div>
           <input
-            type="number"
+            type="text"
+            className="token-input"
+            placeholder="0.0"
             value={amount1}
             onChange={(e) => handleAmountChange(e.target.value, true)}
-            placeholder="0.0"
-            disabled={isLoading || activeTab === 'remove'}
+            disabled={isLoading}
           />
-          {activeTab === 'add' && (
-            <button
-              className="approve-btn"
-              onClick={handleApproveAll}
-              disabled={isApproving || !amount1 || !amount2}
-            >
-              {isApproving ? 'Approbation...' : 'Approuver TKA et TKB'}
-            </button>
-          )}
+          <button
+            className="max-button"
+            onClick={() => handleSetMaxAmount(true)}
+            data-tooltip="Utiliser le montant maximum"
+          >
+            MAX
+          </button>
         </div>
 
-        {activeTab === 'add' && (
-          <div className="input-group">
-            <div className="input-header">
-              <span>Montant équivalent (basé sur le ratio du pool)</span>
-              <span className="balance">
-                Balance: {formatNumber(balances.tokenB)} TKB
-                <button 
-                  className="max-button" 
-                  onClick={() => handleSetMaxAmount(false)}
-                  disabled={isLoading}
-                >
-                  Max
-                </button>
-              </span>
-            </div>
-            <input
-              type="number"
-              value={amount2}
-              onChange={(e) => handleAmountChange(e.target.value, false)}
-              placeholder="0.0"
-              disabled={isLoading}
-            />
+        <div className="token-input-container">
+          <div className="token-input-header">
+            <span className="token-label">Token B</span>
+            <span className="token-balance">
+              Solde: {formatNumber(balances.tokenB)}
+            </span>
           </div>
+          <input
+            type="text"
+            className="token-input"
+            placeholder="0.0"
+            value={amount2}
+            onChange={(e) => handleAmountChange(e.target.value, false)}
+            disabled={isLoading}
+          />
+          <button
+            className="max-button"
+            onClick={() => handleSetMaxAmount(false)}
+            data-tooltip="Utiliser le montant maximum"
+          >
+            MAX
+          </button>
+        </div>
+      </div>
+
+      {!poolInfo.optimalRatio && (
+        <div className="ratio-warning">
+          Attention: Le ratio des tokens n'est pas optimal. Cela peut entraîner une perte de valeur.
+        </div>
+      )}
+
+      <div className="pool-info">
+        <div className="pool-info-item">
+          <span className="pool-info-label">Taux d'échange</span>
+          <span className="pool-info-value">1 A = {formatNumber(poolInfo.rate)} B</span>
+        </div>
+        <div className="pool-info-item">
+          <span className="pool-info-label">Part de la pool</span>
+          <span className="pool-info-value">{formatNumber(poolInfo.share)}%</span>
+        </div>
+        <div className="pool-info-item">
+          <span className="pool-info-label">Total Token A</span>
+          <span className="pool-info-value">{formatNumber(poolInfo.totalTokenA)}</span>
+        </div>
+        <div className="pool-info-item">
+          <span className="pool-info-label">Total Token B</span>
+          <span className="pool-info-value">{formatNumber(poolInfo.totalTokenB)}</span>
+        </div>
+      </div>
+
+      <div className="action-buttons">
+        {activeTab === 'add' ? (
+          <>
+            <button
+              className={`action-button approve ${isLoading ? 'loading' : ''}`}
+              onClick={handleApproveAll}
+              disabled={isLoading || !amount1 || !amount2}
+            >
+              {isLoading ? 'Approbation...' : 'Approuver'}
+            </button>
+            <button
+              className={`action-button deposit ${isLoading ? 'loading' : ''}`}
+              onClick={handleDeposit}
+              disabled={isLoading || !amount1 || !amount2}
+            >
+              {isLoading ? 'Dépôt...' : 'Déposer'}
+            </button>
+          </>
+        ) : (
+          <>
+            <div className="fees-section">
+              <div className="fees-info">
+                <span className="fees-label">Frais collectés</span>
+                <div className="fees-value">
+                  {formatNumber(feesA)} A / {formatNumber(feesB)} B
+                </div>
+              </div>
+            </div>
+            <button
+              className={`action-button withdraw ${isLoading ? 'loading' : ''}`}
+              onClick={handleWithdraw}
+              disabled={isLoading || Number(position.poolShare) === 0}
+            >
+              {isLoading ? 'Retrait...' : 'Retirer'}
+            </button>
+          </>
         )}
       </div>
 
-      {/* Action Buttons */}
-      <div className="liquidity-actions">
-        <button 
-          className="action-btn"
-          onClick={activeTab === 'add' ? handleDeposit : handleWithdraw}
-          disabled={isLoading || !amount1 || (activeTab === 'add' && !amount2)}
-        >
-          {isLoading ? 'Processing...' : (activeTab === 'add' ? 'Déposer les tokens' : 'Retirer les tokens')}
-          <span className="btn-glow"></span>
-        </button>
-      </div>
-
-      {/* Position Summary */}
-      <div className="position-summary">
-        <h3 className="summary-title">Your Position</h3>
-        <div className="summary-grid">
-          <div className="summary-item">
-            <span className="item-label">Pooled TokenA</span>
-            <span className="item-value">{position.tokenAAmount} TKA</span>
-          </div>
-          <div className="summary-item">
-            <span className="item-label">Pooled TokenB</span>
-            <span className="item-value">{position.tokenBAmount} TKB</span>
-          </div>
-          <div className="summary-item">
-            <span className="item-label">Pool Share</span>
-            <span className="item-value">{position.poolShare}%</span>
-          </div>
-          <div className="summary-item">
-            <span className="item-label">Earned Fees</span>
-            <span className="item-value positive">+{formatNumber(feesA)} TKA / +{formatNumber(feesB)} TKB</span>
-          </div>
+      {isLoading && (
+        <div className="loading-overlay">
+          <div className="loading-spinner" />
         </div>
-      </div>
-
-      <div className="fees-display">
-        <h3>Collected Fees</h3>
-        <div className="fees-grid">
-          <div className="fee-item">
-            <span className="fee-label">TokenA:</span>
-            <span className="fee-amount">{formatNumber(feesA)}</span>
-          </div>
-          <div className="fee-item">
-            <span className="fee-label">TokenB:</span>
-            <span className="fee-amount">{formatNumber(feesB)}</span>
-          </div>
-        </div>
-      </div>
+      )}
     </div>
   );
 };

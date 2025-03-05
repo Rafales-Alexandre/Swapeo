@@ -17,7 +17,6 @@ const switchToSepoliaNetwork = async (): Promise<void> => {
   const currentChainId = await window.ethereum.request({ method: "eth_chainId" });
 
   if (currentChainId === sepoliaChainId) {
-    console.log("Already on Sepolia network");
     return;
   }
 
@@ -64,7 +63,6 @@ const initialize = async (): Promise<void> => {
       throw new Error("MetaMask is not installed");
     }
     
-    console.log("Initializing provider...");
     provider = new BrowserProvider(window.ethereum, {
       name: "Sepolia",
       chainId: 11155111
@@ -74,7 +72,6 @@ const initialize = async (): Promise<void> => {
     
     // Réinitialiser le provider quand l'utilisateur change de compte
     window.ethereum.on('accountsChanged', async (accounts: string[]) => {
-      console.log("Account changed, reinitializing...", accounts[0]);
       isInitialized = false;
       provider = new BrowserProvider(window.ethereum, {
         name: "Sepolia",
@@ -85,14 +82,8 @@ const initialize = async (): Promise<void> => {
 
     signer = await provider.getSigner();
     const signerAddress = await signer.getAddress();
-    console.log("Initialized with signer address:", signerAddress);
     
     const code = await provider.getCode(CONTRACT_ADDRESS);
-    console.log("Contract check:", {
-      address: CONTRACT_ADDRESS,
-      bytecodeLength: code.length - 2,
-      signerAddress: signerAddress
-    });
     
     if (code.length <= 2) {
       throw new Error(`Aucun contrat trouvé à l'adresse ${CONTRACT_ADDRESS}`);
@@ -105,7 +96,6 @@ const initialize = async (): Promise<void> => {
     );
     
     isInitialized = true;
-    console.log("Contract initialized successfully");
   } catch (error) {
     console.error("Initialization failed:", error);
     isInitialized = false;
@@ -131,13 +121,10 @@ export const requestAccount = async (): Promise<string | null> => {
 
     const accounts = await window.ethereum.request({ method: "eth_accounts" });
     if (accounts.length === 0) {
-      console.log("Requesting account connection...");
       const newAccounts = await provider.send("eth_requestAccounts", []);
-      console.log("Connected account:", newAccounts[0]);
       return newAccounts[0];
     }
 
-    console.log("Using existing account:", accounts[0]);
     return accounts[0];
   } catch (error) {
     console.error("Error requesting account:", error);
@@ -146,7 +133,6 @@ export const requestAccount = async (): Promise<string | null> => {
 };
 
 export const disconnectAccount = async (): Promise<void> => {
-  console.log("Disconnecting wallet...");
   signer = null;
   contract = undefined;
   isInitialized = false;
@@ -158,40 +144,27 @@ export const getContractBalanceInETH = async (): Promise<string> => {
     
     // Vérifier le réseau
     const network = await provider?.getNetwork();
-    console.log("Current network:", {
-      chainId: network?.chainId.toString(),
-      name: network?.name
-    });
     
-    // Vérifier si le contrat existe
-    console.log("Checking addresses:");
-    console.log("Contract address:", CONTRACT_ADDRESS);
     const signerAddress = await signer?.getAddress();
-    console.log("Signer address:", signerAddress);
     
     const code = await provider?.getCode(CONTRACT_ADDRESS);
-    console.log("Contract code length:", code?.length);
     if (code === '0x') {
       console.error("No contract found at address:", CONTRACT_ADDRESS);
       return "0";
     }
     
-    // Vérifier les deux balances
-    console.log("Fetching balances...");
     
     // Balance du contrat
     const contractBalance = await window.ethereum.request({
       method: 'eth_getBalance',
       params: [CONTRACT_ADDRESS, 'latest']
     });
-    console.log("Contract raw balance:", contractBalance);
     
     // Balance du wallet
     const walletBalance = await window.ethereum.request({
       method: 'eth_getBalance',
       params: [signerAddress, 'latest']
     });
-    console.log("Wallet raw balance:", walletBalance);
     
     if (!contractBalance) {
       console.error("No contract balance received");
@@ -201,7 +174,6 @@ export const getContractBalanceInETH = async (): Promise<string> => {
     // Convertir la valeur hexadécimale en BigInt puis en string formatté
     const balanceInWei = BigInt(contractBalance);
     const formattedBalance = formatUnits(balanceInWei, 18);
-    console.log("Formatted contract balance in ETH:", formattedBalance);
 
     return formattedBalance;
   } catch (error) {
@@ -360,7 +332,6 @@ export const getCollectedFees = async (token: string, account: string): Promise<
 export const approveToken = async (tokenAddress: string, amount: string): Promise<void> => {
   try {
     if (!signer) await initialize();
-    console.log(`Approving token ${tokenAddress} for amount ${amount}`);
     
     // ABI spécifique pour ERC20Mock
     const ERC20Mock_ABI = [
@@ -385,32 +356,25 @@ export const approveToken = async (tokenAddress: string, amount: string): Promis
     try {
       // Vérifier le symbole du token
       const symbol = await tokenContract.symbol();
-      console.log(`Token Symbol: ${symbol}`);
     } catch (error) {
       console.warn("Could not fetch token symbol:", error);
     }
     
     // Vérifier le solde avant l'approbation
     const balance = await tokenContract.balanceOf(await signer.getAddress());
-    console.log(`Current balance: ${formatUnits(balance, 18)}`);
 
     // Vérifier l'allowance actuelle
     const currentAllowance = await tokenContract.allowance(await signer.getAddress(), CONTRACT_ADDRESS);
-    console.log(`Current allowance: ${formatUnits(currentAllowance, 18)}`);
 
     const amountInWei = parseUnits(amount, 18);
-    console.log(`Approving amount in Wei: ${amountInWei.toString()}`);
 
     // Effectuer l'approbation
     const tx = await tokenContract.approve(CONTRACT_ADDRESS, amountInWei);
-    console.log(`Approval transaction sent: ${tx.hash}`);
     
     const receipt = await tx.wait();
-    console.log(`Approval confirmed in block ${receipt.blockNumber}`);
 
     // Vérifier la nouvelle allowance
     const newAllowance = await tokenContract.allowance(await signer.getAddress(), CONTRACT_ADDRESS);
-    console.log(`New allowance: ${formatUnits(newAllowance, 18)}`);
 
   } catch (error) {
     console.error("Error in approveToken:", error);
@@ -444,13 +408,9 @@ export const mintTestTokens = async (): Promise<void> => {
     const balanceA = await tokenA.balanceOf(userAddress);
     const balanceB = await tokenB.balanceOf(userAddress);
 
-    console.log(`Balances actuelles :`);
-    console.log(`${formatUnits(balanceA, 18)} ${symbolA}`);
-    console.log(`${formatUnits(balanceB, 18)} ${symbolB}`);
 
     // Si l'utilisateur a déjà les tokens, ne rien faire
     if (balanceA >= parseUnits(AMOUNT_A, 18) && balanceB >= parseUnits(AMOUNT_B, 18)) {
-      console.log("Vous avez déjà suffisamment de tokens");
       return;
     }
 
@@ -475,43 +435,19 @@ export const getLiquidityPosition = async (account: string): Promise<{
 }> => {
   try {
     if (!contract) {
-      console.log("Contract not initialized, initializing...");
       await initialize();
     }
 
-    // Vérification du contrat
-    console.log("Contract state:", {
-      address: CONTRACT_ADDRESS,
-      initialized: isInitialized,
-      hasContract: !!contract
-    });
 
     // Utiliser les nouvelles adresses pour les réserves de la pool
     const tokenA = TOKENS.TOKEN_A;
     const tokenB = TOKENS.TOKEN_B;
 
-    console.log("Using new token addresses for pool reserves:", {
-      tokenA,
-      tokenB
-    });
 
-    // Vérifier que le contrat a les bonnes méthodes
-    console.log("Available contract methods:", {
-      hasPairKeys: !!contract?.pairKeys,
-      hasPairs: !!contract?.pairs
-    });
 
-    // Récupérer la clé de la paire
-    console.log("Fetching pair key...");
     const pairKey = await contract?.pairKeys(tokenA, tokenB);
-    console.log("Pair key result:", {
-      pairKey,
-      isNull: !pairKey || pairKey === "0x0000000000000000000000000000000000000000000000000000000000000000"
-    });
 
-    // Si pas de paire, retourner des valeurs par défaut
     if (!pairKey || pairKey === "0x0000000000000000000000000000000000000000000000000000000000000000") {
-      console.log("No pair found, returning default values");
       return {
         tokenAAmount: "0",
         tokenBAmount: "0",
@@ -519,10 +455,7 @@ export const getLiquidityPosition = async (account: string): Promise<{
       };
     }
 
-    // Récupérer les informations de la paire
-    console.log("Fetching pair info...");
     const pair = await contract?.pairs(pairKey);
-    console.log("Full pair info:", pair);
 
     // Formater les résultats
     const formattedResult = {
@@ -531,7 +464,6 @@ export const getLiquidityPosition = async (account: string): Promise<{
       poolShare: "0"
     };
 
-    console.log("Formatted result:", formattedResult);
     return formattedResult;
 
   } catch (error) {
@@ -547,12 +479,6 @@ export const getLiquidityPosition = async (account: string): Promise<{
 export const getTokenBalance = async (tokenAddress: string, account: string): Promise<string> => {
   try {
     if (!signer) await initialize();
-    
-    console.log("Getting balance for:", {
-      token: tokenAddress,
-      account: account,
-      signer: signer ? "initialized" : "not initialized"
-    });
 
     // Vérifier que l'adresse du compte est valide
     if (!account) {
@@ -576,15 +502,9 @@ export const getTokenBalance = async (tokenAddress: string, account: string): Pr
       tokenContract.name().catch(() => "Unknown")
     ]);
     
-    console.log("Token info:", {
-      symbol,
-      name,
-      address: tokenAddress
-    });
     
     // Récupérer la balance et les décimales
     const signerAddress = await signer.getAddress();
-    console.log("Checking balance for signer:", signerAddress);
     
     const [balance, decimals] = await Promise.all([
       tokenContract.balanceOf(signerAddress).catch((error: any) => {
@@ -597,19 +517,9 @@ export const getTokenBalance = async (tokenAddress: string, account: string): Pr
       })
     ]);
 
-    console.log(`Raw balance for ${symbol}:`, {
-      balance: balance.toString(),
-      decimals: decimals,
-      account: signerAddress
-    });
-
     // Formater la balance avec le bon nombre de décimales
     const formattedBalance = formatUnits(balance, decimals);
     
-    console.log(`Formatted balance for ${symbol}:`, {
-      balance: formattedBalance,
-      account: signerAddress
-    });
     
     return formattedBalance;
   } catch (error) {
@@ -622,19 +532,15 @@ export const sendETHToContract = async (amount: string): Promise<void> => {
   try {
     if (!signer) await initialize();
     
-    console.log(`Sending ${amount} ETH to contract...`);
     const tx = await signer.sendTransaction({
       to: CONTRACT_ADDRESS,
       value: parseUnits(amount, 18)
     });
     
-    console.log("Transaction sent:", tx.hash);
     const receipt = await tx.wait();
-    console.log("Transaction confirmed in block:", receipt.blockNumber);
     
     // Vérifier le nouveau solde
     const balance = await getContractBalanceInETH();
-    console.log("New contract balance:", balance, "ETH");
   } catch (error) {
     console.error("Error sending ETH to contract:", error);
     throw error;
@@ -646,10 +552,8 @@ export const getAccountBalance = async (): Promise<string> => {
     if (!signer) await initialize();
     
     const address = await signer.getAddress();
-    console.log("Adresse du compte:", address);
 
     const balance = await provider?.getBalance(address);
-    console.log("Solde brut récupéré:", balance?.toString());
 
     return balance ? formatUnits(balance, 18) : "0";
   } catch (error) {

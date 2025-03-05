@@ -4,18 +4,25 @@ import Card from './components/common/Card';
 import ConnectWalletButton from './components/ConnectWalletButton';
 import TokenSwap from './components/TokenSwap';
 import LiquidityActions from './components/LiquidityActions';
-import ContractInfo from './components/ContractInfo';
 import swapeoLogo from './assets/swapeo_logo.svg';
-import swapeoStatus from './assets/swapeo_status.svg';
 import swapeoSwap from './assets/swapeo_swap.svg';
 import swapeoLiquidity from './assets/swapeo_liquidity.svg';
 import './App.css';
 
+type UserRole = 'trader' | 'provider';
+
 const App: React.FC = () => {
   const [account, setAccount] = useState<string | null>(null);
+  const [userRole, setUserRole] = useState<UserRole>('trader');
 
   const handleDisconnect = () => {
     setAccount(null);
+    setUserRole('trader');
+  };
+
+  const handleConnect = (account: string, role: UserRole) => {
+    setAccount(account);
+    setUserRole(role);
   };
 
   return (
@@ -28,9 +35,20 @@ const App: React.FC = () => {
             <span className="title-text">Swapeo</span>
           </div>
           {account && (
-            <div className="status-badge">
-              <span className="status-dot"></span>
-              Connected to Network
+            <div className="header-account">
+              <div className="status-badge">
+                <span className="status-dot"></span>
+                Connected as {userRole === 'trader' ? 'Trader' : 'Provider'}
+              </div>
+              <div className="wallet-address">
+                {account.slice(0, 6)}...{account.slice(-4)}
+              </div>
+              <button 
+                className="disconnect-button"
+                onClick={handleDisconnect}
+              >
+                Déconnecter
+              </button>
             </div>
           )}
         </header>
@@ -42,33 +60,27 @@ const App: React.FC = () => {
             icon="🔌"
             className="welcome-card"
           >
-            <ConnectWalletButton setAccount={setAccount} />
+            <ConnectWalletButton setAccount={handleConnect} />
           </Card>
         ) : (
           <div className="cards-grid">
-            <Card
-              title="System Status"
-              subtitle="Monitor network parameters"
-              icon={<img src={swapeoStatus} alt="Status" className="card-icon" />}
-            >
-              <ContractInfo account={account} onDisconnect={handleDisconnect} />
-            </Card>
-
-            <Card
-              title="Token Exchange"
-              subtitle="Execute secure token transfers"
-              icon={<img src={swapeoSwap} alt="Swap" className="card-icon" />}
-            >
-              <TokenSwap account={account} />
-            </Card>
-
-            <Card
-              title="Liquidity"
-              subtitle="Manage system resources"
-              icon={<img src={swapeoLiquidity} alt="Liquidity" className="card-icon" />}
-            >
-              <LiquidityActions account={account} />
-            </Card>
+            {userRole === 'trader' ? (
+              <Card
+                title="Token Exchange"
+                subtitle="Execute secure token transfers"
+                icon={<img src={swapeoSwap} alt="Swap" className="card-icon" />}
+              >
+                <TokenSwap account={account} />
+              </Card>
+            ) : (
+              <Card
+                title="Liquidity"
+                subtitle="Manage system resources"
+                icon={<img src={swapeoLiquidity} alt="Liquidity" className="card-icon" />}
+              >
+                <LiquidityActions account={account} />
+              </Card>
+            )}
           </div>
         )}
       </div>
