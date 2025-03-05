@@ -56,7 +56,7 @@ npm install
 ## 🔧 Configuration
 
 1. Smart Contracts :
-- Créer un fichier `.env` dans le dossier `contract/` avec :
+- Setup des vars avec `npx hardhat vars set` ***** :
 ```
 PRIVATE_KEY=votre_clé_privée
 INFURA_API_KEY=votre_clé_infura
@@ -81,7 +81,7 @@ VITE_BACKEND_URL=http://localhost:3000
 1. Déployer les smart contracts :
 ```bash
 cd contract
-npx hardhat run scripts/deploy.js --network [RÉSEAU]
+npx hardhat ignition deploy ./ignition/modules/SwapeoDEX.js --network [RÉSEAU]
 ```
 
 2. Démarrer le backend :

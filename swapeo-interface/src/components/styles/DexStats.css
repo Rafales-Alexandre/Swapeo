@@ -1,0 +1,46 @@
+.dex-stats {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  padding: 20px;
+  margin: 20px 0;
+  backdrop-filter: blur(10px);
+}
+
+.dex-stats h2 {
+  color: #fff;
+  margin-bottom: 20px;
+  font-size: 1.5rem;
+}
+
+.stats-section {
+  margin-bottom: 20px;
+}
+
+.stats-section h3 {
+  color: #fff;
+  font-size: 1.2rem;
+  margin-bottom: 10px;
+}
+
+.stats-section ul {
+  list-style: none;
+  padding: 0;
+}
+
+.stats-section li {
+  color: #ddd;
+  margin-bottom: 8px;
+  font-family: monospace;
+}
+
+.stats-section p {
+  color: #ddd;
+  margin: 8px 0;
+}
+
+.dex-stats.error {
+  background: rgba(255, 0, 0, 0.1);
+  color: #ff6b6b;
+  text-align: center;
+  padding: 15px;
+} 

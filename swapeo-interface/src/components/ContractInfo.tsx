@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { toast } from 'react-toastify';
-import { getContractBalanceInETH, getNetworkStats, getAccountBalance } from '../utils/contractServices';
+import { getContractBalanceInETH, getNetworkStats, getAccountBalance, getNetworkName } from '../utils/contractServices';
 import Button from './common/Button';
 import LoadingSpinner from './common/LoadingSpinner';
 import './styles/ContractInfo.css';
@@ -10,6 +10,7 @@ const ContractInfo: React.FC<{ account: string; onDisconnect: () => void }> = ({
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [networkName, setNetworkName] = useState<string>("Unknown Network");
   const [networkStats, setNetworkStats] = useState({
     gasPrice: '0',
     blockNumber: '0'
@@ -19,12 +20,14 @@ const ContractInfo: React.FC<{ account: string; onDisconnect: () => void }> = ({
     try {
       setError(null);
       setIsRefreshing(true);
-      const [contractBalance, stats] = await Promise.all([
+      const [contractBalance, stats, network] = await Promise.all([
         getContractBalanceInETH(),
-        getNetworkStats()
+        getNetworkStats(),
+        getNetworkName()
       ]);
       setBalance(contractBalance);
       setNetworkStats(stats);
+      setNetworkName(network);
       setIsLoading(false);
       toast('Données mises à jour');
     } catch (error) {
@@ -88,7 +91,7 @@ const ContractInfo: React.FC<{ account: string; onDisconnect: () => void }> = ({
           <div className="info-label">Network Status</div>
           <div className="status-value">
             <span className="status-dot active"></span>
-            Connected to Hardhat
+            Connected to {networkName}
           </div>
         </div>
 

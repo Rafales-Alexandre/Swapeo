@@ -52,17 +52,20 @@ export class DexService {
   private contract: ethers.Contract;
 
   constructor() {
-    const providerUrl = process.env.PROVIDER_URL || 'http://localhost:8545';
+    const providerUrl = process.env.PROVIDER_URL || '';
+    if (!providerUrl) {
+      throw new Error('PROVIDER_URL non définie dans le fichier .env');
+    }
     
-    // Configuration du provider avec des options spécifiques
+    // Configuration du provider pour Sepolia
     this.provider = new ethers.JsonRpcProvider(providerUrl, {
-      chainId: 31337, // Hardhat local network
-      name: 'localhost'
+      chainId: 11155111, // Sepolia network
+      name: 'sepolia'
     });
     
     const contractAddress = process.env.CONTRACT_ADDRESS || '';
     if (!contractAddress) {
-      console.warn('Attention: CONTRACT_ADDRESS non définie dans le fichier .env');
+      throw new Error('CONTRACT_ADDRESS non définie dans le fichier .env');
     }
 
     this.contract = new ethers.Contract(contractAddress, SwapeoDEX_ABI, this.provider);

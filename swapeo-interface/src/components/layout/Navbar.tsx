@@ -1,7 +1,18 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
+import { getNetworkName } from '../../utils/contractServices';
 import './Navbar.css';
 
 const Navbar = ({ account }: { account: string | null }) => {
+  const [networkName, setNetworkName] = useState<string>("Unknown Network");
+
+  useEffect(() => {
+    const fetchNetworkName = async () => {
+      const name = await getNetworkName();
+      setNetworkName(name);
+    };
+    fetchNetworkName();
+  }, []);
+
   return (
     <nav className="navbar">
       <div className="navbar-content">
@@ -22,7 +33,7 @@ const Navbar = ({ account }: { account: string | null }) => {
             <div className="account-info">
               <div className="network-pill">
                 <span className="network-dot"></span>
-                Hardhat
+                {networkName}
               </div>
               <div className="address-pill">
                 {`${account.slice(0, 6)}...${account.slice(-4)}`}

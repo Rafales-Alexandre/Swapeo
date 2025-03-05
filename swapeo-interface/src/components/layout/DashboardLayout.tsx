@@ -1,4 +1,5 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
+import { getNetworkName } from '../../utils/contractServices';
 import './DashboardLayout.css';
 
 interface DashboardLayoutProps {
@@ -6,6 +7,16 @@ interface DashboardLayoutProps {
 }
 
 const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
+  const [networkName, setNetworkName] = useState<string>("Unknown Network");
+
+  useEffect(() => {
+    const fetchNetworkName = async () => {
+      const name = await getNetworkName();
+      setNetworkName(name);
+    };
+    fetchNetworkName();
+  }, []);
+
   return (
     <div className="dashboard-layout">
       <header className="dashboard-header">
@@ -16,7 +27,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
           </div>
           <div className="network-badge">
             <span className="network-indicator"></span>
-            Hardhat Network
+            {networkName} Network
           </div>
         </div>
       </header>

@@ -5,6 +5,7 @@ import ConnectWalletButton from './components/ConnectWalletButton';
 import ContractInfo from './components/ContractInfo';
 import TokenSwap from './components/TokenSwap';
 import LiquidityActions from './components/LiquidityActions';
+import DexStats from './components/DexStats';
 import './App.css';
 
 const App: React.FC = () => {
@@ -17,7 +18,7 @@ const App: React.FC = () => {
   return (
     <>
       <div className="app-container">
-          <BlockchainCube />
+        <BlockchainCube />
         <header className="app-header">
           <div className="app-title">
             <span className="app-logo">⚡</span>

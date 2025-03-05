@@ -1,25 +1,24 @@
 // src/utils/contractServices.ts
 import { BrowserProvider, Contract, parseUnits, formatUnits } from "ethers";
 import SwapeoDEX_ABI from "./SwapeoDEX_ABI.json";
-import { TOKEN_OPTIONS } from "./constants";
-
-const CONTRACT_ADDRESS = "0xCf7Ed3AccA5a467e9e704C703E8D87F634fB0Fc9";
+import { TOKEN_OPTIONS, CONTRACT_ADDRESS } from "./constants";
+import { ethers } from 'ethers';
 
 let provider: BrowserProvider | undefined;
 let signer: any;
 let contract: Contract | undefined;
 let isInitialized = false;
 
-const switchToHardhatNetwork = async (): Promise<void> => {
+const switchToSepoliaNetwork = async (): Promise<void> => {
   if (!window.ethereum) {
     throw new Error("MetaMask is not installed");
   }
 
-  const hardhatChainId = "0x7A69"; // 31337 en hexadécimal
+  const sepoliaChainId = "0xaa36a7"; // 11155111 en hexadécimal
   const currentChainId = await window.ethereum.request({ method: "eth_chainId" });
 
-  if (currentChainId === hardhatChainId) {
-    console.log("Already on Hardhat network");
+  if (currentChainId === sepoliaChainId) {
+    console.log("Already on Sepolia network");
     return;
   }
 
@@ -27,7 +26,7 @@ const switchToHardhatNetwork = async (): Promise<void> => {
     // Tenter de changer de réseau
     await window.ethereum.request({
       method: "wallet_switchEthereumChain",
-      params: [{ chainId: hardhatChainId }],
+      params: [{ chainId: sepoliaChainId }],
     });
   } catch (error: any) {
     // Si le réseau n'existe pas (code 4902), l'ajouter
@@ -37,19 +36,20 @@ const switchToHardhatNetwork = async (): Promise<void> => {
           method: "wallet_addEthereumChain",
           params: [
             {
-              chainId: hardhatChainId,
-              chainName: "Hardhat Local",
+              chainId: sepoliaChainId,
+              chainName: "Sepolia",
               nativeCurrency: {
-                name: "Ethereum",
+                name: "Sepolia ETH",
                 symbol: "ETH",
                 decimals: 18,
               },
-              rpcUrls: ["http://127.0.0.1:8545"],
+              rpcUrls: ["https://eth-sepolia.g.alchemy.com/v2/XXuXkKK5ykgeiNzxWN5jDdJxMTObRDte"],
+              blockExplorerUrls: ["https://sepolia.etherscan.io"],
             },
           ],
         });
       } catch (addError) {
-        console.error("Failed to add Hardhat network:", addError);
+        console.error("Failed to add Sepolia network:", addError);
         throw addError;
       }
     } else {
@@ -67,23 +67,21 @@ const initialize = async (): Promise<void> => {
       throw new Error("MetaMask is not installed");
     }
     
-    // Configuration du provider sans ENS
+    // Configuration du provider pour Sepolia
     provider = new BrowserProvider(window.ethereum, {
-      name: "Hardhat",
-      chainId: 31337,
-      ensAddress: undefined,
-      ensNetwork: undefined
+      name: "Sepolia",
+      chainId: 11155111
     });
     
-    await switchToHardhatNetwork();
+    await switchToSepoliaNetwork();
     signer = await provider.getSigner();
     
     // Vérifier si le contrat existe
     const code = await provider.getCode(CONTRACT_ADDRESS);
     console.log("Checking contract at address:", CONTRACT_ADDRESS);
-    console.log("Contract bytecode length:", code.length);
+    console.log("Contract bytecode length:", code.length - 2); // -2 pour '0x'
     
-    if (code === "0x") {
+    if (code.length <= 2) { // '0x' seul signifie pas de contrat
       throw new Error(`Aucun contrat trouvé à l'adresse ${CONTRACT_ADDRESS}. Veuillez vérifier l'adresse du déploiement.`);
     }
     
@@ -93,15 +91,6 @@ const initialize = async (): Promise<void> => {
       SwapeoDEX_ABI,
       signer
     );
-    
-    // Vérifier si le contrat répond en appelant une fonction qui existe certainement
-    try {
-      const pairKey = await contract.pairKeys(TOKEN_OPTIONS[0].address, TOKEN_OPTIONS[1].address);
-      console.log("Contract responds - pair key:", pairKey);
-    } catch (error) {
-      console.error("Failed to call contract method:", error);
-      throw new Error("Le contrat ne répond pas correctement. Veuillez vérifier l'ABI et l'adresse.");
-    }
     
     isInitialized = true;
     console.log("Contract initialized successfully at:", CONTRACT_ADDRESS);
@@ -406,35 +395,49 @@ export const approveToken = async (tokenAddress: string, amount: string): Promis
   }
 };
 
-export const mintTestTokens = async (tokenAddress: string, amount: string): Promise<void> => {
+export const mintTestTokens = async (): Promise<void> => {
   try {
     if (!signer) await initialize();
-    console.log(`Checking token balance at address ${tokenAddress}`);
     
-    const ERC20Mock_ABI = [
-      "function name() view returns (string)",
-      "function symbol() view returns (string)",
-      "function decimals() view returns (uint8)",
-      "function totalSupply() view returns (uint256)",
-      "function balanceOf(address account) view returns (uint256)"
+    const TOKEN_A_ADDRESS = "0x5B4af503D9999a18Bf0d7Fc120b25eCAb51705e2";
+    const TOKEN_B_ADDRESS = "0xdb655C51ccD702e14C598a2c8689B7c6c83f9F8a";
+    const AMOUNT_A = "4000";
+    const AMOUNT_B = "3000";
+
+    const ERC20_ABI = [
+      "function balanceOf(address account) view returns (uint256)",
+      "function symbol() view returns (string)"
     ];
 
-    const tokenContract = new Contract(tokenAddress, ERC20Mock_ABI, signer);
-    const signerAddress = await signer.getAddress();
-    
-    // Vérifier le symbole du token
-    const symbol = await tokenContract.symbol();
-    console.log(`Token Symbol: ${symbol}`);
-    
-    // Vérifier le solde
-    const balance = await tokenContract.balanceOf(signerAddress);
-    console.log(`Current balance: ${formatUnits(balance, 18)}`);
-    
-    if (balance === 0n) {
-      throw new Error(`Vous n'avez pas de ${symbol}. Veuillez contacter le déployeur du contrat pour obtenir des tokens de test.`);
+    // Créer les instances des contrats de tokens
+    const tokenA = new Contract(TOKEN_A_ADDRESS, ERC20_ABI, signer);
+    const tokenB = new Contract(TOKEN_B_ADDRESS, ERC20_ABI, signer);
+
+    const userAddress = await signer.getAddress();
+    const symbolA = await tokenA.symbol();
+    const symbolB = await tokenB.symbol();
+
+    // Vérifier les balances actuelles
+    const balanceA = await tokenA.balanceOf(userAddress);
+    const balanceB = await tokenB.balanceOf(userAddress);
+
+    console.log(`Balances actuelles :`);
+    console.log(`${formatUnits(balanceA, 18)} ${symbolA}`);
+    console.log(`${formatUnits(balanceB, 18)} ${symbolB}`);
+
+    // Si l'utilisateur a déjà les tokens, ne rien faire
+    if (balanceA >= parseUnits(AMOUNT_A, 18) && balanceB >= parseUnits(AMOUNT_B, 18)) {
+      console.log("Vous avez déjà suffisamment de tokens");
+      return;
     }
 
-    console.log(`Vous avez déjà ${formatUnits(balance, 18)} ${symbol}`);
+    // Si l'utilisateur n'a pas assez de tokens, afficher un message d'erreur
+    throw new Error(
+      `Pour obtenir des tokens de test sur Sepolia, veuillez contacter le créateur à l'adresse 0xACB24e6B49dA6B83EE259c29FBaF81760A2dF0A5.\n\n` +
+      `Tokens nécessaires :\n` +
+      `- ${AMOUNT_A} ${symbolA} (${TOKEN_A_ADDRESS})\n` +
+      `- ${AMOUNT_B} ${symbolB} (${TOKEN_B_ADDRESS})`
+    );
 
   } catch (error) {
     console.error("Error in mintTestTokens:", error);
@@ -538,6 +541,17 @@ export const getAccountBalance = async (): Promise<string> => {
   } catch (error) {
     console.error("Erreur lors de la récupération du solde:", error);
     return "0";
+  }
+};
+
+export const getNetworkName = async (): Promise<string> => {
+  try {
+    if (!provider) await initialize();
+    const network = await provider?.getNetwork();
+    return network?.name || "Unknown Network";
+  } catch (error) {
+    console.error("Erreur lors de la récupération du nom du réseau:", error);
+    return "Unknown Network";
   }
 };
 

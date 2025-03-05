@@ -41,4 +41,25 @@ export const getLiquidityProviders = async (req: Request, res: Response) => {
   } catch (error) {
     res.status(500).json({ error: 'Erreur lors de la récupération des fournisseurs de liquidité' });
   }
+};
+
+// Get all stats in one request
+export const getAllStats = async (req: Request, res: Response) => {
+  try {
+    const [availableTokens, swapCount, users, liquidityProviders] = await Promise.all([
+      dexService.getAvailableTokens(),
+      dexService.getSwapCount(),
+      dexService.getUsers(),
+      dexService.getLiquidityProviders()
+    ]);
+
+    res.json({
+      availableTokens,
+      swapCount,
+      users,
+      liquidityProviders
+    });
+  } catch (error) {
+    res.status(500).json({ error: 'Erreur lors de la récupération des statistiques' });
+  }
 }; 
