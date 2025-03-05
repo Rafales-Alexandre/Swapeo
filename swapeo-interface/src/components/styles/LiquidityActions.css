@@ -615,4 +615,37 @@
   justify-content: space-between;
   align-items: center;
   margin-bottom: 8px;
+}
+
+.approve-btn {
+  width: 100%;
+  margin-top: 12px;
+  padding: 12px;
+  border-radius: 8px;
+  background: rgba(76, 175, 80, 0.1);
+  border: 1px solid rgba(76, 175, 80, 0.3);
+  color: #4CAF50;
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+}
+
+.approve-btn:hover:not(:disabled) {
+  background: rgba(76, 175, 80, 0.2);
+  border-color: rgba(76, 175, 80, 0.5);
+  transform: translateY(-1px);
+}
+
+.approve-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.approve-btn:active:not(:disabled) {
+  transform: translateY(1px);
 } 

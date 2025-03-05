@@ -211,6 +211,29 @@ const LiquidityActions: React.FC<{ account: string }> = ({ account }) => {
     }
   };
 
+  const handleApproveAll = async () => {
+    const amountValidation1 = validateAmount(amount1);
+    const amountValidation2 = validateAmount(amount2);
+
+    if (!amountValidation1.isValid || !amountValidation2.isValid) {
+      toast.error(amountValidation1.error || amountValidation2.error);
+      return;
+    }
+
+    setIsApproving(true);
+    try {
+      await Promise.all([
+        approveToken(TOKEN_OPTIONS[0].address, amount1),
+        approveToken(TOKEN_OPTIONS[1].address, amount2)
+      ]);
+      toast.success('Les deux tokens ont été approuvés avec succès !');
+    } catch (error) {
+      toast.error(`Échec de l'approbation : ${(error as Error).message}`);
+    } finally {
+      setIsApproving(false);
+    }
+  };
+
   const handleDeposit = async () => {
     const amountValidation1 = validateAmount(amount1);
     const amountValidation2 = validateAmount(amount2);
@@ -382,13 +405,15 @@ const LiquidityActions: React.FC<{ account: string }> = ({ account }) => {
             placeholder="0.0"
             disabled={isLoading || activeTab === 'remove'}
           />
-          <button
-            className="approve-btn"
-            onClick={() => handleApprove(TOKEN_OPTIONS[0].address, amount1)}
-            disabled={isApproving || !amount1}
-          >
-            {isApproving ? 'Approving...' : 'Approve TKA'}
-          </button>
+          {activeTab === 'add' && (
+            <button
+              className="approve-btn"
+              onClick={handleApproveAll}
+              disabled={isApproving || !amount1 || !amount2}
+            >
+              {isApproving ? 'Approbation...' : 'Approuver TKA et TKB'}
+            </button>
+          )}
         </div>
 
         {activeTab === 'add' && (
@@ -413,13 +438,6 @@ const LiquidityActions: React.FC<{ account: string }> = ({ account }) => {
               placeholder="0.0"
               disabled={isLoading}
             />
-            <button
-              className="approve-btn"
-              onClick={() => handleApprove(TOKEN_OPTIONS[1].address, amount2)}
-              disabled={isApproving || !amount2}
-            >
-              {isApproving ? 'Approving...' : 'Approve TKB'}
-            </button>
           </div>
         )}
       </div>
