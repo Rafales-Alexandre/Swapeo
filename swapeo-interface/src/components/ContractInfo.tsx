@@ -41,6 +41,11 @@ const ContractInfo: React.FC<{ account: string; onDisconnect: () => void }> = ({
 
   const formatAddress = (addr: string) => `${addr.slice(0, 6)}...${addr.slice(-4)}`;
 
+  const formatGasPrice = (price: string) => {
+    const numPrice = parseFloat(price);
+    return numPrice.toFixed(4);
+  };
+
   const copyToClipboard = async () => {
     try {
       await navigator.clipboard.writeText(account);
@@ -125,7 +130,7 @@ const ContractInfo: React.FC<{ account: string; onDisconnect: () => void }> = ({
       <div className="network-stats">
         <div className="stat-item">
           <span className="stat-label">Gas Price</span>
-          <span className="stat-value">{networkStats.gasPrice} Gwei</span>
+          <span className="stat-value">{formatGasPrice(networkStats.gasPrice)} gw</span>
         </div>
         <div className="stat-item">
           <span className="stat-label">Block Number</span>
