@@ -438,16 +438,20 @@ export const getLiquidityPosition = async (account: string): Promise<{
       await initialize();
     }
 
+    console.log("Compte connecté:", account);
 
     // Utiliser les nouvelles adresses pour les réserves de la pool
     const tokenA = TOKENS.TOKEN_A;
     const tokenB = TOKENS.TOKEN_B;
 
-
+    console.log("Token A:", tokenA);
+    console.log("Token B:", tokenB);
 
     const pairKey = await contract?.pairKeys(tokenA, tokenB);
+    console.log("Pair Key:", pairKey);
 
     if (!pairKey || pairKey === "0x0000000000000000000000000000000000000000000000000000000000000000") {
+      console.log("Pair Key invalide");
       return {
         tokenAAmount: "0",
         tokenBAmount: "0",
@@ -456,14 +460,61 @@ export const getLiquidityPosition = async (account: string): Promise<{
     }
 
     const pair = await contract?.pairs(pairKey);
+    console.log("Pair:", pair);
+
+    // Récupérer le solde LP de l'utilisateur en vérifiant les deux tokens
+    const userLPBalanceA = await contract?.lpBalances(tokenA, account);
+    const userLPBalanceB = await contract?.lpBalances(tokenB, account);
+    
+    console.log("Balance LP Token A:", userLPBalanceA.toString());
+    console.log("Balance LP Token B:", userLPBalanceB.toString());
+    
+    // Utiliser le plus grand des deux soldes
+    const userLPBalance = userLPBalanceA > userLPBalanceB ? userLPBalanceA : userLPBalanceB;
+    console.log("Balance LP finale:", userLPBalance.toString());
+    
+    // Récupérer la liste des LP et leurs soldes en vérifiant les deux tokens
+    const lpListA = await contract?.getLPList(tokenA);
+    const lpListB = await contract?.getLPList(tokenB);
+    
+    console.log("Liste LP Token A:", lpListA);
+    console.log("Liste LP Token B:", lpListB);
+    
+    // Fusionner les listes et supprimer les doublons
+    const lpList = [...new Set([...lpListA, ...lpListB])];
+    console.log("Liste LP fusionnée:", lpList);
+    
+    const totalLPBalances = await Promise.all(
+      lpList.map(async (lp: string) => {
+        const balanceA = await contract!.lpBalances(tokenA, lp);
+        const balanceB = await contract!.lpBalances(tokenB, lp);
+        return balanceA > balanceB ? balanceA : balanceB;
+      })
+    );
+    
+    console.log("Balances LP totales:", totalLPBalances.map(b => b.toString()));
+    
+    // Calculer le total des soldes LP
+    const totalLPBalance = totalLPBalances.reduce((a: bigint, b: bigint) => a + b, 0n);
+    console.log("Total LP Balance:", totalLPBalance.toString());
+    
+    // Calculer la part de la pool en pourcentage
+    let poolShare = "0";
+    if (totalLPBalance > 0n) {
+      const share = (userLPBalance * 100n) / totalLPBalance;
+      poolShare = share.toString();
+      console.log("Share calculée:", share.toString());
+      console.log("Pool Share finale:", poolShare);
+    }
 
     // Formater les résultats
     const formattedResult = {
       tokenAAmount: formatUnits(pair?.reserveA || 0, 18),
       tokenBAmount: formatUnits(pair?.reserveB || 0, 18),
-      poolShare: "0"
+      poolShare
     };
 
+    console.log("Résultat final:", formattedResult);
     return formattedResult;
 
   } catch (error) {
@@ -479,6 +530,9 @@ export const getLiquidityPosition = async (account: string): Promise<{
 export const getTokenBalance = async (tokenAddress: string, account: string): Promise<string> => {
   try {
     if (!signer) await initialize();
+
+    console.log("Vérification du solde pour le token:", tokenAddress);
+    console.log("Compte:", account);
 
     // Vérifier que l'adresse du compte est valide
     if (!account) {
@@ -502,9 +556,11 @@ export const getTokenBalance = async (tokenAddress: string, account: string): Pr
       tokenContract.name().catch(() => "Unknown")
     ]);
     
+    console.log("Token info:", { symbol, name });
     
     // Récupérer la balance et les décimales
     const signerAddress = await signer.getAddress();
+    console.log("Adresse du signer:", signerAddress);
     
     const [balance, decimals] = await Promise.all([
       tokenContract.balanceOf(signerAddress).catch((error: any) => {
@@ -517,9 +573,12 @@ export const getTokenBalance = async (tokenAddress: string, account: string): Pr
       })
     ]);
 
+    console.log("Balance brute:", balance.toString());
+    console.log("Décimales:", decimals);
+
     // Formater la balance avec le bon nombre de décimales
     const formattedBalance = formatUnits(balance, decimals);
-    
+    console.log("Balance formatée:", formattedBalance);
     
     return formattedBalance;
   } catch (error) {
@@ -570,6 +629,67 @@ export const getNetworkName = async (): Promise<string> => {
   } catch (error) {
     console.error("Erreur lors de la récupération du nom du réseau:", error);
     return "Unknown Network";
+  }
+};
+
+export const getAccountInfo = async (): Promise<void> => {
+  try {
+    if (!signer) await initialize();
+    
+    const account = await signer.getAddress();
+    console.log("\n=== INFORMATIONS DU COMPTE CONNECTÉ ===");
+    console.log("Adresse:", account);
+    
+    // Balance ETH
+    const ethBalance = await getAccountBalance();
+    console.log("\nBalance ETH:", ethBalance);
+    
+    // Balance des tokens
+    console.log("\n=== BALANCES DES TOKENS ===");
+    const tokenA = TOKENS.TOKEN_A;
+    const tokenB = TOKENS.TOKEN_B;
+    
+    const tokenABalance = await getTokenBalance(tokenA, account);
+    const tokenBBalance = await getTokenBalance(tokenB, account);
+    
+    console.log("Token A Balance:", tokenABalance);
+    console.log("Token B Balance:", tokenBBalance);
+    
+    // Position de liquidité
+    console.log("\n=== POSITION DE LIQUIDITÉ ===");
+    const liquidityPosition = await getLiquidityPosition(account);
+    console.log("Token A dans la pool:", liquidityPosition.tokenAAmount);
+    console.log("Token B dans la pool:", liquidityPosition.tokenBAmount);
+    console.log("Part de la pool:", liquidityPosition.poolShare + "%");
+    
+    // Allowances
+    console.log("\n=== ALLOWANCES ===");
+    const tokenAContract = new Contract(tokenA, [
+      "function allowance(address owner, address spender) view returns (uint256)"
+    ], signer);
+    
+    const tokenBContract = new Contract(tokenB, [
+      "function allowance(address owner, address spender) view returns (uint256)"
+    ], signer);
+    
+    const [allowanceA, allowanceB] = await Promise.all([
+      tokenAContract.allowance(account, CONTRACT_ADDRESS),
+      tokenBContract.allowance(account, CONTRACT_ADDRESS)
+    ]);
+    
+    console.log("Allowance Token A:", formatUnits(allowanceA, 18));
+    console.log("Allowance Token B:", formatUnits(allowanceB, 18));
+    
+    // Fees collectées
+    console.log("\n=== FEES COLLECTÉES ===");
+    const feesA = await getCollectedFees(tokenA, account);
+    const feesB = await getCollectedFees(tokenB, account);
+    console.log("Fees Token A:", feesA);
+    console.log("Fees Token B:", feesB);
+    
+    console.log("\n=== FIN DES INFORMATIONS ===\n");
+  } catch (error) {
+    console.error("Erreur lors de la récupération des informations du compte:", error);
   }
 };
 

@@ -274,16 +274,6 @@ const LiquidityActions: React.FC<{ account: string }> = ({ account }) => {
       return;
     }
 
-    // Vérification du ratio avec une tolérance plus large
-    const expectedAmount2 = calculateRequiredAmount(amount1, true);
-    const ratio = Math.abs(Number(amount2) - Number(expectedAmount2)) / Number(expectedAmount2);
-    const tolerance = 0.01; // Augmentation de la tolérance à 1%
-
-    if (ratio > tolerance && Number(poolInfo.totalTokenA) > 0) {
-      toast.warning(`Le ratio n'est pas optimal. Montant recommandé pour le token B: ${formatNumber(expectedAmount2)}`);
-      // On ne bloque plus la transaction, on laisse l'utilisateur décider
-    }
-
     // Vérification des balances avec une marge de sécurité
     const balanceA = Number(balances.tokenA);
     const balanceB = Number(balances.tokenB);
@@ -437,14 +427,6 @@ const LiquidityActions: React.FC<{ account: string }> = ({ account }) => {
         <div className="pool-info-item">
           <span className="pool-info-label">Part de la pool</span>
           <span className="pool-info-value">{formatNumber(poolInfo.share)}%</span>
-        </div>
-        <div className="pool-info-item">
-          <span className="pool-info-label">Total Token A</span>
-          <span className="pool-info-value">{formatNumber(poolInfo.totalTokenA)}</span>
-        </div>
-        <div className="pool-info-item">
-          <span className="pool-info-label">Total Token B</span>
-          <span className="pool-info-value">{formatNumber(poolInfo.totalTokenB)}</span>
         </div>
       </div>
 
