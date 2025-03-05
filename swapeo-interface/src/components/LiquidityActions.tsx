@@ -22,7 +22,8 @@ const LiquidityActions: React.FC<{ account: string }> = ({ account }) => {
     rate: '0',
     share: '0',
     totalTokenA: '0',
-    totalTokenB: '0'
+    totalTokenB: '0',
+    optimalRatio: true
   });
   const [balances, setBalances] = useState({
     tokenA: '0',
@@ -36,38 +37,84 @@ const LiquidityActions: React.FC<{ account: string }> = ({ account }) => {
     return num.toFixed(4).replace(/\.?0+$/, '');
   };
 
-  // Fonction pour calculer le montant du second token basé sur la formule du constant product
+  // Fonction pour calculer le montant maximum possible en fonction des balances
+  const calculateMaxAmount = (isTokenA: boolean) => {
+    const tokenABalance = Number(balances.tokenA);
+    const tokenBBalance = Number(balances.tokenB);
+    const rate = Number(poolInfo.rate);
+
+    if (isTokenA) {
+      // Si on calcule pour token A, on prend le minimum entre la balance A et B/rate
+      return Math.min(tokenABalance, tokenBBalance / rate);
+    } else {
+      // Si on calcule pour token B, on prend le minimum entre la balance B et A*rate
+      return Math.min(tokenBBalance, tokenABalance * rate);
+    }
+  };
+
+  // Fonction pour calculer le montant du second token avec une meilleure précision
   const calculateRequiredAmount = (amount: string, isTokenA: boolean) => {
     if (!amount || Number(amount) === 0) return '0';
     
     const totalA = Number(poolInfo.totalTokenA);
     const totalB = Number(poolInfo.totalTokenB);
+    const rate = Number(poolInfo.rate);
     
-    if (totalA === 0 || totalB === 0) return amount; // Premier dépôt, ratio 1:1
+    if (totalA === 0 || totalB === 0) {
+      // Premier dépôt, on vérifie si le montant est dans les limites des balances
+      const maxAmount = calculateMaxAmount(isTokenA);
+      if (Number(amount) > maxAmount) {
+        return formatNumber(maxAmount.toString());
+      }
+      return amount;
+    }
     
     const inputAmount = Number(amount);
-    let requiredAmount;
+    const requiredAmount = isTokenA ? inputAmount * rate : inputAmount / rate;
     
-    if (isTokenA) {
-      // Si on ajoute du token A, calculer le token B requis
-      requiredAmount = (inputAmount * totalB) / totalA;
-    } else {
-      // Si on ajoute du token B, calculer le token A requis
-      requiredAmount = (inputAmount * totalA) / totalB;
-    }
-    
-    return formatNumber(requiredAmount.toString());
+    // Vérifier si le montant calculé est dans les limites des balances
+    const maxRequired = calculateMaxAmount(!isTokenA);
+    return formatNumber(Math.min(requiredAmount, maxRequired).toString());
   };
 
-  // Gestionnaire pour la mise à jour des montants
+  // Gestionnaire pour la mise à jour des montants avec validation améliorée
   const handleAmountChange = (value: string, isFirstToken: boolean) => {
+    const numValue = Number(value);
+    const maxAmount = calculateMaxAmount(isFirstToken);
+
+    if (numValue > maxAmount) {
+      toast.warning(`Montant maximum possible: ${formatNumber(maxAmount.toString())}`);
+      value = maxAmount.toString();
+    }
+
     if (isFirstToken) {
       setAmount1(value);
-      setAmount2(calculateRequiredAmount(value, true));
+      const requiredAmount = calculateRequiredAmount(value, true);
+      setAmount2(requiredAmount);
+
+      // Vérifier le ratio optimal
+      const currentRatio = numValue > 0 ? Number(requiredAmount) / numValue : 0;
+      const targetRatio = Number(poolInfo.rate);
+      const isOptimalRatio = Math.abs(currentRatio - targetRatio) / targetRatio < 0.001;
+      setPoolInfo(prev => ({ ...prev, optimalRatio: isOptimalRatio }));
+
     } else {
       setAmount2(value);
-      setAmount1(calculateRequiredAmount(value, false));
+      const requiredAmount = calculateRequiredAmount(value, false);
+      setAmount1(requiredAmount);
+
+      // Vérifier le ratio optimal
+      const currentRatio = numValue > 0 ? numValue / Number(requiredAmount) : 0;
+      const targetRatio = Number(poolInfo.rate);
+      const isOptimalRatio = Math.abs(currentRatio - targetRatio) / targetRatio < 0.001;
+      setPoolInfo(prev => ({ ...prev, optimalRatio: isOptimalRatio }));
     }
+  };
+
+  // Fonction pour définir le montant maximum
+  const handleSetMaxAmount = (isTokenA: boolean) => {
+    const maxAmount = calculateMaxAmount(isTokenA);
+    handleAmountChange(maxAmount.toString(), isTokenA);
   };
 
   useEffect(() => {
@@ -110,7 +157,8 @@ const LiquidityActions: React.FC<{ account: string }> = ({ account }) => {
           rate,
           share: position.poolShare,
           totalTokenA: totalA,
-          totalTokenB: totalB
+          totalTokenB: totalB,
+          optimalRatio: true
         });
       } catch (error) {
         console.error("Error fetching pool info:", error);
@@ -173,13 +221,21 @@ const LiquidityActions: React.FC<{ account: string }> = ({ account }) => {
       return;
     }
 
-    // Vérifier que les montants respectent le ratio du pool
+    // Vérifier que les montants respectent exactement le ratio du pool
     const expectedAmount2 = calculateRequiredAmount(amount1, true);
-    const tolerance = 0.01; // 1% de tolérance
     const ratio = Math.abs(Number(amount2) - Number(expectedAmount2)) / Number(expectedAmount2);
+    const tolerance = 0.001; // 0.1% de tolérance maximum
 
     if (ratio > tolerance && Number(poolInfo.totalTokenA) > 0) {
-      toast.error(`Les montants doivent respecter le ratio du pool (${formatNumber(poolInfo.rate)} TKB par TKA)`);
+      toast.error(`Les montants doivent respecter exactement le ratio du pool (${formatNumber(poolInfo.rate)} TKB par TKA)`);
+      // Correction automatique des montants
+      setAmount2(expectedAmount2);
+      return;
+    }
+
+    // Vérifier les balances
+    if (Number(amount1) > Number(balances.tokenA) || Number(amount2) > Number(balances.tokenB)) {
+      toast.error('Balance insuffisante pour effectuer ce dépôt');
       return;
     }
 
@@ -243,9 +299,9 @@ const LiquidityActions: React.FC<{ account: string }> = ({ account }) => {
   };
 
   return (
-    <div className="liquidity-matrix-container">
+    <div className="liquidity-container">
       {/* Tab Navigation */}
-      <div className="matrix-tabs">
+      <div className="liquidity-tabs">
         <button 
           className={`tab-btn ${activeTab === 'add' ? 'active' : ''}`}
           onClick={() => setActiveTab('add')}
@@ -281,7 +337,7 @@ const LiquidityActions: React.FC<{ account: string }> = ({ account }) => {
         </button>
       </div>
 
-      {/* Pool Information */}
+      {/* Pool Information avec indicateur de ratio */}
       <div className="pool-info">
         <div className="info-row">
           <span className="info-label">Pool Rate</span>
@@ -291,14 +347,33 @@ const LiquidityActions: React.FC<{ account: string }> = ({ account }) => {
           <span className="info-label">Your Pool Share</span>
           <span className="info-value">{formatNumber(poolInfo.share)}%</span>
         </div>
+        {activeTab === 'add' && Number(amount1) > 0 && (
+          <div className="info-row ratio-indicator">
+            <span className="info-label">Ratio Status</span>
+            <span className={`info-value ${poolInfo.optimalRatio ? 'optimal' : 'suboptimal'}`}>
+              {poolInfo.optimalRatio ? '✓ Optimal' : '⚠️ Ajustement nécessaire'}
+            </span>
+          </div>
+        )}
       </div>
 
-      {/* Token Input Section */}
+      {/* Token Input Section avec boutons Max */}
       <div className="token-input-section">
         <div className="input-group">
           <div className="input-header">
             <span>{activeTab === 'add' ? 'Montant à déposer' : 'Montant à retirer'}</span>
-            <span className="balance">Balance: {formatNumber(balances.tokenA)} TKA</span>
+            <span className="balance">
+              Balance: {formatNumber(balances.tokenA)} TKA
+              {activeTab === 'add' && (
+                <button 
+                  className="max-button" 
+                  onClick={() => handleSetMaxAmount(true)}
+                  disabled={isLoading}
+                >
+                  Max
+                </button>
+              )}
+            </span>
           </div>
           <input
             type="number"
@@ -320,7 +395,16 @@ const LiquidityActions: React.FC<{ account: string }> = ({ account }) => {
           <div className="input-group">
             <div className="input-header">
               <span>Montant équivalent (basé sur le ratio du pool)</span>
-              <span className="balance">Balance: {formatNumber(balances.tokenB)} TKB</span>
+              <span className="balance">
+                Balance: {formatNumber(balances.tokenB)} TKB
+                <button 
+                  className="max-button" 
+                  onClick={() => handleSetMaxAmount(false)}
+                  disabled={isLoading}
+                >
+                  Max
+                </button>
+              </span>
             </div>
             <input
               type="number"
@@ -341,7 +425,7 @@ const LiquidityActions: React.FC<{ account: string }> = ({ account }) => {
       </div>
 
       {/* Action Buttons */}
-      <div className="matrix-actions">
+      <div className="liquidity-actions">
         <button 
           className="action-btn"
           onClick={activeTab === 'add' ? handleDeposit : handleWithdraw}

@@ -20,17 +20,7 @@
   text-align: center;
 }
 
-.tab-switcher {
-  display: flex;
-  justify-content: center;
-  gap: 8px;
-  margin-bottom: 24px;
-  background: #f8f9fa;
-  padding: 4px;
-  border-radius: 12px;
-}
-
-.matrix-tab-button {
+.liquidity-tab-button {
   padding: 10px 20px;
   background: rgba(0, 0, 0, 0.7);
   border: 1px solid rgba(76, 175, 80, 0.3);
@@ -42,17 +32,24 @@
   transition: all 0.3s ease;
 }
 
-.matrix-tab-button.active {
+.liquidity-tab-button.active {
   background: rgba(76, 175, 80, 0.1);
   border-color: rgba(76, 175, 80, 0.6);
   color: #4CAF50;
   box-shadow: 0 0 15px rgba(76, 175, 80, 0.2);
 }
 
-.matrix-tab-button:hover:not(.active) {
+.liquidity-tab-button:hover:not(.active) {
   background: rgba(76, 175, 80, 0.05);
   border-color: rgba(76, 175, 80, 0.4);
   color: #4CAF50;
+}
+
+.liquidity-tabs {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  margin-bottom: 24px;
 }
 
 .token-selection {
@@ -255,15 +252,11 @@
     color: #ecf0f1;
   }
 
-  .tab-switcher {
-    background: #34495e;
-  }
-
-  .tab-button {
+  .liquidity-tab-button {
     color: #bdc3c7;
   }
 
-  .tab-button.active {
+  .liquidity-tab-button.active {
     background: #3498db;
     color: white;
   }
@@ -330,7 +323,7 @@
   border-color: #3498db;
 }
 
-.tab-button:hover:not(.active) {
+.liquidity-tab-button:hover:not(.active) {
   background: rgba(52, 152, 219, 0.1);
 }
 
@@ -535,12 +528,11 @@
   line-height: 1.4;
 }
 
-.matrix-tabs {
-  background: rgba(255, 255, 255, 0.05);
-  padding: 4px;
-  border-radius: 12px;
+.liquidity-tabs {
   display: flex;
-  gap: 4px;
+  justify-content: center;
+  gap: 12px;
+  margin-bottom: 24px;
 }
 
 .tab-btn {
@@ -558,4 +550,69 @@
   background: #2d3748;
   color: #fff;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+/* Ajout des styles pour le bouton Max */
+.max-button {
+  background: rgba(76, 175, 80, 0.1);
+  border: 1px solid rgba(76, 175, 80, 0.3);
+  border-radius: 4px;
+  color: #4CAF50;
+  padding: 2px 6px;
+  font-size: 0.8rem;
+  cursor: pointer;
+  margin-left: 8px;
+  transition: all 0.3s ease;
+}
+
+.max-button:hover:not(:disabled) {
+  background: rgba(76, 175, 80, 0.2);
+  border-color: rgba(76, 175, 80, 0.5);
+}
+
+.max-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Styles pour l'indicateur de ratio */
+.ratio-indicator {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid rgba(76, 175, 80, 0.1);
+}
+
+.ratio-indicator .info-value {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.ratio-indicator .info-value.optimal {
+  color: #4CAF50;
+}
+
+.ratio-indicator .info-value.suboptimal {
+  color: #FFA726;
+}
+
+/* Amélioration des styles existants */
+.info-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 0;
+}
+
+.balance {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.input-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
 } 
