@@ -5,6 +5,7 @@ import ConnectWalletButton from './components/ConnectWalletButton';
 import TokenSwap from './components/TokenSwap';
 import LiquidityActions from './components/LiquidityActions';
 import ContractInfo from './components/ContractInfo';
+import swapeoLogo from './assets/swapeo_logo.svg';
 import './App.css';
 
 const App: React.FC = () => {
@@ -20,8 +21,8 @@ const App: React.FC = () => {
         <BlockchainCube />
         <header className="app-header">
           <div className="app-title">
-            <span className="app-logo">⚡</span>
-            <span className="title-text">Matrix DEX</span>
+            <img src={swapeoLogo} alt="Swapeo Logo" className="app-logo" />
+            <span className="title-text">Swapeo</span>
           </div>
           {account && (
             <div className="status-badge">
@@ -33,7 +34,7 @@ const App: React.FC = () => {
 
         {!account ? (
           <Card
-            title="Enter the Matrix"
+            title="Enter Swapeo"
             subtitle="Connect your wallet to access the network"
             icon="🔌"
             className="welcome-card"

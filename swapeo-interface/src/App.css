@@ -359,8 +359,10 @@ p {
 }
 
 .app-logo {
-  width: 32px;
   height: 32px;
+  width: auto;
+  margin-right: 12px;
+  vertical-align: middle;
 }
 
 .welcome-card {
