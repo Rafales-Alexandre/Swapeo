@@ -6,6 +6,9 @@ import TokenSwap from './components/TokenSwap';
 import LiquidityActions from './components/LiquidityActions';
 import ContractInfo from './components/ContractInfo';
 import swapeoLogo from './assets/swapeo_logo.svg';
+import swapeoStatus from './assets/swapeo_status.svg';
+import swapeoSwap from './assets/swapeo_swap.svg';
+import swapeoLiquidity from './assets/swapeo_liquidity.svg';
 import './App.css';
 
 const App: React.FC = () => {
@@ -46,7 +49,7 @@ const App: React.FC = () => {
             <Card
               title="System Status"
               subtitle="Monitor network parameters"
-              icon="📊"
+              icon={<img src={swapeoStatus} alt="Status" className="card-icon" />}
             >
               <ContractInfo account={account} onDisconnect={handleDisconnect} />
             </Card>
@@ -54,7 +57,7 @@ const App: React.FC = () => {
             <Card
               title="Token Exchange"
               subtitle="Execute secure token transfers"
-              icon="🔄"
+              icon={<img src={swapeoSwap} alt="Swap" className="card-icon" />}
             >
               <TokenSwap account={account} />
             </Card>
@@ -62,7 +65,7 @@ const App: React.FC = () => {
             <Card
               title="Liquidity Matrix"
               subtitle="Manage system resources"
-              icon="💧"
+              icon={<img src={swapeoLiquidity} alt="Liquidity" className="card-icon" />}
             >
               <LiquidityActions account={account} />
             </Card>

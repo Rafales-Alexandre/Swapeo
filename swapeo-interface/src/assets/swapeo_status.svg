@@ -1,0 +1,45 @@
+<svg width="300" height="300" viewBox="0 0 300 300" xmlns="http://www.w3.org/2000/svg">
+  <!-- Define gradients, patterns, and clipping path -->
+  <defs>
+    <!-- Radial gradient for a dark, futuristic coin effect -->
+    <radialGradient id="matrixGradient" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#000000" />
+      <stop offset="100%" stop-color="#003300" />
+    </radialGradient>
+    <!-- Pattern to simulate a digital rain effect -->
+    <pattern id="matrixPattern" patternUnits="userSpaceOnUse" width="10" height="10">
+      <text x="0" y="10" font-size="10" fill="#00FF00" font-family="monospace">0</text>
+    </pattern>
+    <!-- Clip path to confine the digital pattern within the coin -->
+    <clipPath id="clipCircle">
+      <circle cx="150" cy="150" r="140" />
+    </clipPath>
+  </defs>
+  
+  <!-- Coin shape with gradient background and neon green border -->
+  <circle cx="150" cy="150" r="140" fill="url(#matrixGradient)" stroke="#00FF00" stroke-width="5" />
+  
+  <!-- Digital rain pattern inside the coin -->
+  <g clip-path="url(#clipCircle)">
+    <rect x="0" y="0" width="300" height="300" fill="url(#matrixPattern)" opacity="0.1" />
+  </g>
+  
+  <!-- Gear Icon for System Status -->
+  <g transform="translate(150,150)">
+    <!-- Gear Teeth: eight small rectangles rotated around the center -->
+    <g fill="#00FF00">
+      <rect x="-4" y="-60" width="8" height="20"/>
+      <rect x="-4" y="-60" width="8" height="20" transform="rotate(45)"/>
+      <rect x="-4" y="-60" width="8" height="20" transform="rotate(90)"/>
+      <rect x="-4" y="-60" width="8" height="20" transform="rotate(135)"/>
+      <rect x="-4" y="-60" width="8" height="20" transform="rotate(180)"/>
+      <rect x="-4" y="-60" width="8" height="20" transform="rotate(225)"/>
+      <rect x="-4" y="-60" width="8" height="20" transform="rotate(270)"/>
+      <rect x="-4" y="-60" width="8" height="20" transform="rotate(315)"/>
+    </g>
+    <!-- Outer Gear Circle -->
+    <circle cx="0" cy="0" r="30" fill="none" stroke="#00FF00" stroke-width="4"/>
+    <!-- Central Gear Hub -->
+    <circle cx="0" cy="0" r="12" fill="#00FF00"/>
+  </g>
+</svg>

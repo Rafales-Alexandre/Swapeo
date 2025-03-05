@@ -415,6 +415,7 @@ p {
 
 /* Add glowing effects on hover */
 .card:hover .card-icon {
+  transform: scale(1.1);
   box-shadow: 0 0 15px rgba(76, 175, 80, 0.3);
 }
 
@@ -431,4 +432,12 @@ p {
   position: relative;
   z-index: 2;
   pointer-events: auto;
+}
+
+.card-icon {
+  width: 32px;
+  height: 32px;
+  object-fit: contain;
+  vertical-align: middle;
+  transition: transform 0.3s ease;
 }

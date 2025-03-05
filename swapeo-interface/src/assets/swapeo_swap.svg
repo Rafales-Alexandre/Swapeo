@@ -1,0 +1,56 @@
+<svg width="300" height="300" viewBox="0 0 300 300" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <!-- Radial gradient for a dark, futuristic coin effect -->
+    <radialGradient id="matrixGradient" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#000000"/>
+      <stop offset="100%" stop-color="#003300"/>
+    </radialGradient>
+
+    <!-- Pattern to simulate a digital rain effect -->
+    <pattern id="matrixPattern" patternUnits="userSpaceOnUse" width="10" height="10">
+      <text x="0" y="10" font-size="10" fill="#00FF00" font-family="monospace">0</text>
+    </pattern>
+
+    <!-- Clip path to confine the digital pattern within the coin -->
+    <clipPath id="clipCircle">
+      <circle cx="150" cy="150" r="140"/>
+    </clipPath>
+
+    <!-- Marker for arrowheads -->
+    <marker id="arrowhead" markerWidth="10" markerHeight="10" refX="2" refY="5" orient="auto">
+      <polygon points="0 0, 10 5, 0 10" fill="#00FF00"/>
+    </marker>
+  </defs>
+  
+  <!-- Coin shape with gradient background and neon green border -->
+  <circle
+    cx="150" cy="150" r="140"
+    fill="url(#matrixGradient)"
+    stroke="#00FF00"
+    stroke-width="5"
+  />
+
+  <!-- Digital rain pattern inside the coin -->
+  <g clip-path="url(#clipCircle)">
+    <rect
+      x="0" y="0"
+      width="300" height="300"
+      fill="url(#matrixPattern)"
+      opacity="0.1"
+    />
+  </g>
+
+  <!-- Refresh / Sync Icon -->
+  <g stroke="#00FF00" stroke-width="8" fill="none" stroke-linecap="round">
+    <!-- Upper arc (arrow going clockwise) -->
+    <path
+      d="M110,130 A40,40 0 0,1 190,130"
+      marker-end="url(#arrowhead)"
+    />
+    <!-- Lower arc (arrow going clockwise) -->
+    <path
+      d="M190,170 A40,40 0 0,1 110,170"
+      marker-end="url(#arrowhead)"
+    />
+  </g>
+</svg>
