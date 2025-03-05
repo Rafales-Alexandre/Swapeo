@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { toast } from 'react-toastify';
 import { getConversionRate, swapTokens, approveToken, getTokenBalance, getLiquidityPosition } from '../utils/contractServices';
-import { TOKEN_OPTIONS } from '../utils/constants';
+import { TOKEN_OPTIONS, TOKENS } from '../utils/constants';
 import './styles/TokenSwap.css';
 
 type Token = {
@@ -31,17 +31,30 @@ const TokenSwap: React.FC<{ account: string }> = ({ account }) => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const balanceA = await getTokenBalance(TOKEN_OPTIONS[0].address, account);
-        const balanceB = await getTokenBalance(TOKEN_OPTIONS[1].address, account);
+        console.log("Fetching data for account:", account);
+        
+        // Utiliser les anciennes adresses pour les balances
+        const balanceA = await getTokenBalance(TOKENS.TOKEN_A_OLD, account);
+        const balanceB = await getTokenBalance(TOKENS.TOKEN_B_OLD, account);
+        
+        console.log("Balances fetched:", {
+          tokenA: balanceA,
+          tokenB: balanceB
+        });
+        
+        // Les réserves utilisent maintenant les nouvelles adresses dans getLiquidityPosition
         const reserves = await getLiquidityPosition(account);
+        console.log("Pool reserves fetched:", reserves);
         
         setBalances({
           tokenA: balanceA,
           tokenB: balanceB
         });
         setPoolReserves(reserves);
+        
       } catch (error) {
         console.error("Error fetching data:", error);
+        toast.error("Erreur lors de la récupération des données");
       }
     };
 
@@ -54,18 +67,31 @@ const TokenSwap: React.FC<{ account: string }> = ({ account }) => {
 
   // Calculer le montant d'entrée maximum pour un montant de sortie donné
   const getMaxInputForOutput = (targetOutput: number, fromReserve: number, toReserve: number) => {
-    // Formule inverse de AMM : x = y * R1 / (R2 - y)
-    // où y est le montant de sortie désiré
-    // R1 est la réserve du token d'entrée
-    // R2 est la réserve du token de sortie
     return (targetOutput * fromReserve) / (toReserve - targetOutput);
+  };
+
+  // Calculer le montant de sortie estimé
+  const getEstimatedOutput = (inputAmount: number) => {
+    // Utiliser les nouvelles adresses pour les réserves
+    const fromReserve = fromToken.address === TOKENS.TOKEN_A 
+      ? Number(poolReserves.tokenAAmount) 
+      : Number(poolReserves.tokenBAmount);
+    
+    const toReserve = toToken.address === TOKENS.TOKEN_A 
+      ? Number(poolReserves.tokenAAmount) 
+      : Number(poolReserves.tokenBAmount);
+
+    const feeAmount = inputAmount * 0.01;
+    const amountInNet = inputAmount - feeAmount;
+
+    return (amountInNet * toReserve) / (fromReserve + amountInNet);
   };
 
   // Fonction pour valider le montant d'entrée
   const validateAmount = (amount: string) => {
     if (!amount || isNaN(Number(amount))) return false;
     
-    const toReserveAmount = toToken.address === TOKEN_OPTIONS[0].address 
+    const toReserveAmount = toToken.address === TOKENS.TOKEN_A 
       ? poolReserves.tokenAAmount 
       : poolReserves.tokenBAmount;
 
@@ -78,24 +104,6 @@ const TokenSwap: React.FC<{ account: string }> = ({ account }) => {
     }
 
     return true;
-  };
-
-  // Calculer le montant de sortie estimé
-  const getEstimatedOutput = (inputAmount: number) => {
-    const fromReserve = fromToken.address === TOKEN_OPTIONS[0].address 
-      ? Number(poolReserves.tokenAAmount) 
-      : Number(poolReserves.tokenBAmount);
-    
-    const toReserve = toToken.address === TOKEN_OPTIONS[0].address 
-      ? Number(poolReserves.tokenAAmount) 
-      : Number(poolReserves.tokenBAmount);
-
-    // Calculer les frais (1%)
-    const feeAmount = inputAmount * 0.01;
-    const amountInNet = inputAmount - feeAmount;
-
-    // Formule AMM : (amountInNet * reserveOut) / (reserveIn + amountInNet)
-    return (amountInNet * toReserve) / (fromReserve + amountInNet);
   };
 
   // Gestionnaire de changement du montant d'entrée
@@ -111,11 +119,11 @@ const TokenSwap: React.FC<{ account: string }> = ({ account }) => {
     const numAmount = Number(newAmount);
     if (isNaN(numAmount)) return;
 
-    const fromReserve = fromToken.address === TOKEN_OPTIONS[0].address 
+    const fromReserve = fromToken.address === TOKENS.TOKEN_A 
       ? Number(poolReserves.tokenAAmount) 
       : Number(poolReserves.tokenBAmount);
     
-    const toReserve = toToken.address === TOKEN_OPTIONS[0].address 
+    const toReserve = toToken.address === TOKENS.TOKEN_A 
       ? Number(poolReserves.tokenAAmount) 
       : Number(poolReserves.tokenBAmount);
 
@@ -130,8 +138,7 @@ const TokenSwap: React.FC<{ account: string }> = ({ account }) => {
     // Calculer le montant de sortie estimé
     const estimatedOutput = getEstimatedOutput(numAmount);
 
-    if (estimatedOutput > toReserve * 0.95) { // On utilise 95% comme limite de sécurité
-      // Calculer le montant d'entrée maximum qui donnerait 95% des réserves en sortie
+    if (estimatedOutput > toReserve * 0.95) {
       const maxOutput = toReserve * 0.95;
       const maxInput = getMaxInputForOutput(maxOutput, fromReserve, toReserve);
       
@@ -225,9 +232,9 @@ const TokenSwap: React.FC<{ account: string }> = ({ account }) => {
       setToAmount('');
       setIsApproved(false);
       
-      // Rafraîchir les balances
-      const balanceA = await getTokenBalance(TOKEN_OPTIONS[0].address, account);
-      const balanceB = await getTokenBalance(TOKEN_OPTIONS[1].address, account);
+      // Rafraîchir les balances avec les anciennes adresses
+      const balanceA = await getTokenBalance(TOKENS.TOKEN_A_OLD, account);
+      const balanceB = await getTokenBalance(TOKENS.TOKEN_B_OLD, account);
       setBalances({ tokenA: balanceA, tokenB: balanceB });
     } catch (error: any) {
       console.error("Error swapping:", error);
@@ -247,7 +254,7 @@ const TokenSwap: React.FC<{ account: string }> = ({ account }) => {
   };
 
   const getBalance = (token: Token) => {
-    return token.address === TOKEN_OPTIONS[0].address ? balances.tokenA : balances.tokenB;
+    return token.address === TOKENS.TOKEN_A_OLD ? balances.tokenA : balances.tokenB;
   };
 
   // Fonction pour formater les nombres avec 4 décimales maximum
@@ -324,7 +331,7 @@ const TokenSwap: React.FC<{ account: string }> = ({ account }) => {
             <span className="balance-display">
               Balance: {formatNumber(getBalance(toToken))} {toToken.label}
               <span className="max-amount">
-                (Max disponible: {formatNumber(toToken.address === TOKEN_OPTIONS[0].address 
+                (Max disponible: {formatNumber(toToken.address === TOKENS.TOKEN_A 
                   ? poolReserves.tokenAAmount 
                   : poolReserves.tokenBAmount)} {toToken.label})
               </span>

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { toast } from 'react-toastify';
 import { depositLiquidity, withdrawLiquidity, getCollectedFees, approveToken, mintTestTokens, getLiquidityPosition, getConversionRate, getTokenBalance } from '../utils/contractServices';
-import { TOKEN_OPTIONS } from '../utils/constants';
+import { TOKEN_OPTIONS, CONTRACT_ADDRESS } from '../utils/constants';
 import { validateAmount, validateTokenPair } from '../utils/validation';
 import './styles/LiquidityActions.css';
 
@@ -149,9 +149,9 @@ const LiquidityActions: React.FC<{ account: string }> = ({ account }) => {
           "1"
         );
 
-        // Récupérer les totaux du pool (à implémenter dans contractServices)
-        const totalA = await getTokenBalance(TOKEN_OPTIONS[0].address, account);
-        const totalB = await getTokenBalance(TOKEN_OPTIONS[1].address, account);
+        // Récupérer les totaux du pool depuis le contrat principal
+        const totalA = await getTokenBalance(TOKEN_OPTIONS[0].address, CONTRACT_ADDRESS);
+        const totalB = await getTokenBalance(TOKEN_OPTIONS[1].address, CONTRACT_ADDRESS);
 
         setPoolInfo({
           rate,
@@ -161,7 +161,8 @@ const LiquidityActions: React.FC<{ account: string }> = ({ account }) => {
           optimalRatio: true
         });
       } catch (error) {
-        console.error("Error fetching pool info:", error);
+        console.error("Erreur lors de la récupération des informations du pool:", error);
+        toast.error("Impossible de récupérer les informations du pool");
       }
     };
 
@@ -173,15 +174,23 @@ const LiquidityActions: React.FC<{ account: string }> = ({ account }) => {
   useEffect(() => {
     const fetchBalances = async () => {
       try {
+        // Récupérer les balances de l'utilisateur connecté
         const balanceA = await getTokenBalance(TOKEN_OPTIONS[0].address, account);
         const balanceB = await getTokenBalance(TOKEN_OPTIONS[1].address, account);
+
+        console.log("Balances récupérées:", {
+          tokenA: balanceA,
+          tokenB: balanceB,
+          account: account
+        });
 
         setBalances({
           tokenA: balanceA,
           tokenB: balanceB
         });
       } catch (error) {
-        console.error("Error fetching balances:", error);
+        console.error("Erreur lors de la récupération des balances:", error);
+        toast.error("Impossible de récupérer vos balances. Veuillez vérifier votre connexion.");
       }
     };
 

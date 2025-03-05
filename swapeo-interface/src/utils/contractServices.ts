@@ -1,7 +1,7 @@
 // src/utils/contractServices.ts
 import { BrowserProvider, Contract, parseUnits, formatUnits } from "ethers";
 import SwapeoDEX_ABI from "./SwapeoDEX_ABI.json";
-import { TOKEN_OPTIONS, CONTRACT_ADDRESS } from "./constants";
+import { TOKEN_OPTIONS, CONTRACT_ADDRESS, TOKENS } from "./constants";
 
 let provider: BrowserProvider | undefined;
 let signer: any;
@@ -59,24 +59,40 @@ const switchToSepoliaNetwork = async (): Promise<void> => {
 };
 
 const initialize = async (): Promise<void> => {
-  if (isInitialized) return;
-
   try {
     if (!window.ethereum) {
       throw new Error("MetaMask is not installed");
     }
     
+    console.log("Initializing provider...");
     provider = new BrowserProvider(window.ethereum, {
       name: "Sepolia",
       chainId: 11155111
     });
     
     await switchToSepoliaNetwork();
+    
+    // Réinitialiser le provider quand l'utilisateur change de compte
+    window.ethereum.on('accountsChanged', async (accounts: string[]) => {
+      console.log("Account changed, reinitializing...", accounts[0]);
+      isInitialized = false;
+      provider = new BrowserProvider(window.ethereum, {
+        name: "Sepolia",
+        chainId: 11155111
+      });
+      signer = await provider.getSigner();
+    });
+
     signer = await provider.getSigner();
+    const signerAddress = await signer.getAddress();
+    console.log("Initialized with signer address:", signerAddress);
     
     const code = await provider.getCode(CONTRACT_ADDRESS);
-    console.log("Checking contract at address:", CONTRACT_ADDRESS);
-    console.log("Contract bytecode length:", code.length - 2);
+    console.log("Contract check:", {
+      address: CONTRACT_ADDRESS,
+      bytecodeLength: code.length - 2,
+      signerAddress: signerAddress
+    });
     
     if (code.length <= 2) {
       throw new Error(`Aucun contrat trouvé à l'adresse ${CONTRACT_ADDRESS}`);
@@ -89,9 +105,10 @@ const initialize = async (): Promise<void> => {
     );
     
     isInitialized = true;
-    console.log("Contract initialized successfully at:", CONTRACT_ADDRESS);
+    console.log("Contract initialized successfully");
   } catch (error) {
     console.error("Initialization failed:", error);
+    isInitialized = false;
     throw error;
   }
 };
@@ -405,8 +422,8 @@ export const mintTestTokens = async (): Promise<void> => {
   try {
     if (!signer) await initialize();
     
-    const TOKEN_A_ADDRESS = "0x5B4af503D9999a18Bf0d7Fc120b25eCAb51705e2";
-    const TOKEN_B_ADDRESS = "0xdb655C51ccD702e14C598a2c8689B7c6c83f9F8a";
+    const TOKEN_A_ADDRESS = TOKENS.TOKEN_A;
+    const TOKEN_B_ADDRESS = TOKENS.TOKEN_B;
     const AMOUNT_A = "4000";
     const AMOUNT_B = "3000";
 
@@ -457,34 +474,68 @@ export const getLiquidityPosition = async (account: string): Promise<{
   poolShare: string;
 }> => {
   try {
-    if (!contract) await initialize();
-    
-    const tokenA = TOKEN_OPTIONS[0].address;
-    const tokenB = TOKEN_OPTIONS[1].address;
-
-    // Récupérer les réserves totales
-    const pairKey = await contract?.pairKeys(tokenA, tokenB) || "";
-    const pair = await contract?.pairs(pairKey) || { reserveA: 0n, reserveB: 0n };
-    const totalReserveA = pair.reserveA;
-    const totalReserveB = pair.reserveB;
-
-    // Récupérer les balances LP de l'utilisateur
-    const lpBalanceA = await contract?.lpBalances(tokenA, account) || 0n;
-
-    // Calculer la part du pool
-    let poolShare = "0";
-    if (totalReserveA > 0n) {
-      const sharePercentage = (lpBalanceA * 100000n) / totalReserveA;
-      poolShare = (Number(sharePercentage) / 1000).toString();
+    if (!contract) {
+      console.log("Contract not initialized, initializing...");
+      await initialize();
     }
 
-    return {
-      tokenAAmount: formatUnits(totalReserveA, 18),
-      tokenBAmount: formatUnits(totalReserveB, 18),
-      poolShare
+    // Vérification du contrat
+    console.log("Contract state:", {
+      address: CONTRACT_ADDRESS,
+      initialized: isInitialized,
+      hasContract: !!contract
+    });
+
+    // Utiliser les nouvelles adresses pour les réserves de la pool
+    const tokenA = TOKENS.TOKEN_A;
+    const tokenB = TOKENS.TOKEN_B;
+
+    console.log("Using new token addresses for pool reserves:", {
+      tokenA,
+      tokenB
+    });
+
+    // Vérifier que le contrat a les bonnes méthodes
+    console.log("Available contract methods:", {
+      hasPairKeys: !!contract?.pairKeys,
+      hasPairs: !!contract?.pairs
+    });
+
+    // Récupérer la clé de la paire
+    console.log("Fetching pair key...");
+    const pairKey = await contract?.pairKeys(tokenA, tokenB);
+    console.log("Pair key result:", {
+      pairKey,
+      isNull: !pairKey || pairKey === "0x0000000000000000000000000000000000000000000000000000000000000000"
+    });
+
+    // Si pas de paire, retourner des valeurs par défaut
+    if (!pairKey || pairKey === "0x0000000000000000000000000000000000000000000000000000000000000000") {
+      console.log("No pair found, returning default values");
+      return {
+        tokenAAmount: "0",
+        tokenBAmount: "0",
+        poolShare: "0"
+      };
+    }
+
+    // Récupérer les informations de la paire
+    console.log("Fetching pair info...");
+    const pair = await contract?.pairs(pairKey);
+    console.log("Full pair info:", pair);
+
+    // Formater les résultats
+    const formattedResult = {
+      tokenAAmount: formatUnits(pair?.reserveA || 0, 18),
+      tokenBAmount: formatUnits(pair?.reserveB || 0, 18),
+      poolShare: "0"
     };
+
+    console.log("Formatted result:", formattedResult);
+    return formattedResult;
+
   } catch (error) {
-    console.error("Error fetching liquidity position:", error);
+    console.error("Error in getLiquidityPosition:", error);
     return {
       tokenAAmount: "0",
       tokenBAmount: "0",
@@ -497,15 +548,72 @@ export const getTokenBalance = async (tokenAddress: string, account: string): Pr
   try {
     if (!signer) await initialize();
     
-    const ERC20Mock_ABI = [
-      "function balanceOf(address account) view returns (uint256)"
-    ];
+    console.log("Getting balance for:", {
+      token: tokenAddress,
+      account: account,
+      signer: signer ? "initialized" : "not initialized"
+    });
 
-    const tokenContract = new Contract(tokenAddress, ERC20Mock_ABI, signer);
-    const balance = await tokenContract.balanceOf(account);
-    return formatUnits(balance, 18);
+    // Vérifier que l'adresse du compte est valide
+    if (!account) {
+      console.warn("No account provided for getTokenBalance");
+      return "0";
+    }
+
+    // Créer une instance du contrat ERC20
+    const tokenABI = [
+      "function balanceOf(address) view returns (uint256)",
+      "function decimals() view returns (uint8)",
+      "function symbol() view returns (string)",
+      "function name() view returns (string)"
+    ];
+    
+    const tokenContract = new Contract(tokenAddress, tokenABI, signer);
+    
+    // Récupérer les informations du token
+    const [symbol, name] = await Promise.all([
+      tokenContract.symbol().catch(() => "Unknown"),
+      tokenContract.name().catch(() => "Unknown")
+    ]);
+    
+    console.log("Token info:", {
+      symbol,
+      name,
+      address: tokenAddress
+    });
+    
+    // Récupérer la balance et les décimales
+    const signerAddress = await signer.getAddress();
+    console.log("Checking balance for signer:", signerAddress);
+    
+    const [balance, decimals] = await Promise.all([
+      tokenContract.balanceOf(signerAddress).catch((error: any) => {
+        console.error(`Error fetching balance for ${symbol}:`, error);
+        return 0n;
+      }),
+      tokenContract.decimals().catch((error: any) => {
+        console.error(`Error fetching decimals for ${symbol}:`, error);
+        return 18;
+      })
+    ]);
+
+    console.log(`Raw balance for ${symbol}:`, {
+      balance: balance.toString(),
+      decimals: decimals,
+      account: signerAddress
+    });
+
+    // Formater la balance avec le bon nombre de décimales
+    const formattedBalance = formatUnits(balance, decimals);
+    
+    console.log(`Formatted balance for ${symbol}:`, {
+      balance: formattedBalance,
+      account: signerAddress
+    });
+    
+    return formattedBalance;
   } catch (error) {
-    console.error("Error getting token balance:", error);
+    console.error("Error in getTokenBalance:", error);
     return "0";
   }
 };
