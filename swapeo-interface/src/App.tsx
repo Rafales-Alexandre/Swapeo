@@ -2,10 +2,9 @@ import React, { useState } from 'react';
 import BlockchainCube from './components/effects/BlockchainCube';
 import Card from './components/common/Card';
 import ConnectWalletButton from './components/ConnectWalletButton';
-import ContractInfo from './components/ContractInfo';
 import TokenSwap from './components/TokenSwap';
 import LiquidityActions from './components/LiquidityActions';
-import DexStats from './components/DexStats';
+import ContractInfo from './components/ContractInfo';
 import './App.css';
 
 const App: React.FC = () => {

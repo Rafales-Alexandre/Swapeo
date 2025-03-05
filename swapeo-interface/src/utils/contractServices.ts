@@ -2,7 +2,6 @@
 import { BrowserProvider, Contract, parseUnits, formatUnits } from "ethers";
 import SwapeoDEX_ABI from "./SwapeoDEX_ABI.json";
 import { TOKEN_OPTIONS, CONTRACT_ADDRESS } from "./constants";
-import { ethers } from 'ethers';
 
 let provider: BrowserProvider | undefined;
 let signer: any;
@@ -60,14 +59,13 @@ const switchToSepoliaNetwork = async (): Promise<void> => {
 };
 
 const initialize = async (): Promise<void> => {
-  if (isInitialized) return; // Éviter la réinitialisation
+  if (isInitialized) return;
 
   try {
     if (!window.ethereum) {
       throw new Error("MetaMask is not installed");
     }
     
-    // Configuration du provider pour Sepolia
     provider = new BrowserProvider(window.ethereum, {
       name: "Sepolia",
       chainId: 11155111
@@ -76,16 +74,14 @@ const initialize = async (): Promise<void> => {
     await switchToSepoliaNetwork();
     signer = await provider.getSigner();
     
-    // Vérifier si le contrat existe
     const code = await provider.getCode(CONTRACT_ADDRESS);
     console.log("Checking contract at address:", CONTRACT_ADDRESS);
-    console.log("Contract bytecode length:", code.length - 2); // -2 pour '0x'
+    console.log("Contract bytecode length:", code.length - 2);
     
-    if (code.length <= 2) { // '0x' seul signifie pas de contrat
-      throw new Error(`Aucun contrat trouvé à l'adresse ${CONTRACT_ADDRESS}. Veuillez vérifier l'adresse du déploiement.`);
+    if (code.length <= 2) {
+      throw new Error(`Aucun contrat trouvé à l'adresse ${CONTRACT_ADDRESS}`);
     }
     
-    // Créer le contrat
     contract = new Contract(
       CONTRACT_ADDRESS,
       SwapeoDEX_ABI,
@@ -112,6 +108,10 @@ export const requestAccount = async (): Promise<string | null> => {
       await initialize();
     }
 
+    if (!provider) {
+      throw new Error("Provider not initialized");
+    }
+
     const accounts = await window.ethereum.request({ method: "eth_accounts" });
     if (accounts.length === 0) {
       console.log("Requesting account connection...");
@@ -131,7 +131,7 @@ export const requestAccount = async (): Promise<string | null> => {
 export const disconnectAccount = async (): Promise<void> => {
   console.log("Disconnecting wallet...");
   signer = null;
-  contract = null;
+  contract = undefined;
   isInitialized = false;
 };
 
@@ -224,11 +224,16 @@ export const getConversionRate = async (
   amount: string
 ): Promise<string> => {
   try {
-    if (!contract) await initialize();
+    if (!contract) {
+      await initialize();
+      if (!contract) {
+        throw new Error("Failed to initialize contract");
+      }
+    }
     const amountInWei = parseUnits(amount, 18);
     const amountOutWei = await contract.getAmountOut(tokenA, tokenB, amountInWei);
     if (amountOutWei === 0n) {
-      return "0"; // Retourne "0" au lieu de throw pour indiquer aucune liquidité
+      return "0";
     }
     return formatUnits(amountOutWei, 18);
   } catch (error) {
@@ -243,21 +248,15 @@ export const swapTokens = async (
   amount: string
 ): Promise<void> => {
   try {
-    if (!contract) await initialize();
+    if (!contract) {
+      await initialize();
+      if (!contract) {
+        throw new Error("Failed to initialize contract");
+      }
+    }
     const amountInWei = parseUnits(amount, 18);
-    const tokenContract = new Contract(tokenA, [
-      "function balanceOf(address) view returns (uint256)",
-      "function allowance(address owner, address spender) view returns (uint256)",
-    ], signer);
-    const balance = await tokenContract.balanceOf(await signer.getAddress());
-    const allowance = await tokenContract.allowance(await signer.getAddress(), CONTRACT_ADDRESS);
-
-    if (balance < amountInWei) throw new Error("Insufficient balance");
-    if (allowance < amountInWei) throw new Error("Insufficient allowance");
-
     const tx = await contract.swap(tokenA, tokenB, amountInWei);
-    const receipt = await tx.wait();
-    console.log("Swap successful, tx hash:", receipt.hash);
+    await tx.wait();
   } catch (error) {
     console.error("Error swapping tokens:", error);
     throw error;
@@ -271,12 +270,16 @@ export const depositLiquidity = async (
   amountB: string
 ): Promise<void> => {
   try {
-    if (!contract) await initialize();
+    if (!contract) {
+      await initialize();
+      if (!contract) {
+        throw new Error("Failed to initialize contract");
+      }
+    }
     const amountAWei = parseUnits(amountA, 18);
     const amountBWei = parseUnits(amountB, 18);
     const tx = await contract.deposit(tokenA, tokenB, amountAWei, amountBWei);
     await tx.wait();
-    console.log("Liquidity deposited");
   } catch (error) {
     console.error("Error depositing liquidity:", error);
     throw error;
@@ -289,11 +292,15 @@ export const withdrawLiquidity = async (
   amountA: string
 ): Promise<void> => {
   try {
-    if (!contract) await initialize();
+    if (!contract) {
+      await initialize();
+      if (!contract) {
+        throw new Error("Failed to initialize contract");
+      }
+    }
     const amountAWei = parseUnits(amountA, 18);
     const tx = await contract.withdraw(tokenA, tokenB, amountAWei);
     await tx.wait();
-    console.log("Liquidity withdrawn");
   } catch (error) {
     console.error("Error withdrawing liquidity:", error);
     throw error;
@@ -302,34 +309,33 @@ export const withdrawLiquidity = async (
 
 export const getCollectedFees = async (token: string, account: string): Promise<string> => {
   try {
-    if (!contract) await initialize();
+    if (!contract) {
+      await initialize();
+      if (!contract) {
+        throw new Error("Failed to initialize contract");
+      }
+    }
+    const lpBalance = await contract.lpBalances(token, account);
+    const totalFees = await contract.feesCollected(token);
     
-    // Vérifier que les adresses sont définies
-    if (!token || !account) {
-      console.error("Missing address");
+    if (lpBalance === 0n || totalFees === 0n) {
       return "0";
     }
 
-    // Récupérer les balances
-    const lpBalance = await contract.lpBalances(token, account);
-    const totalFees = await contract.feesCollected(token);
-
-    if (!lpBalance || lpBalance === 0n) return "0";
-
-    // Récupérer la liste des LP et leurs balances
     const lpList = await contract.getLPList(token);
-    const balances = await Promise.all(
-      lpList.map((lp: string) => contract.lpBalances(token, lp))
+    const totalLPBalances = await Promise.all(
+      lpList.map((lp: string) => contract!.lpBalances(token, lp))
     );
-    
-    // Calculer la liquidité totale
-    const totalLiquidity = balances.reduce((sum: bigint, bal: bigint) => sum + bal, 0n);
 
-    // Calculer la part des frais
-    const feeShare = totalLiquidity > 0n ? (lpBalance * totalFees) / totalLiquidity : 0n;
-    return formatUnits(feeShare, 18);
+    const totalLPBalance = totalLPBalances.reduce((a: bigint, b: bigint) => a + b, 0n);
+    if (totalLPBalance === 0n) {
+      return "0";
+    }
+
+    const userShare = (lpBalance * totalFees) / totalLPBalance;
+    return formatUnits(userShare, 18);
   } catch (error) {
-    console.error("Error fetching fees:", error);
+    console.error("Error getting collected fees:", error);
     return "0";
   }
 };

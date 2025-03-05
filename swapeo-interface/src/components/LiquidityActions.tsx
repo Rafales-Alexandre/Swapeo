@@ -1,11 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { toast } from 'react-toastify';
-import { Contract, formatUnits } from 'ethers';
 import { depositLiquidity, withdrawLiquidity, getCollectedFees, approveToken, mintTestTokens, getLiquidityPosition, getConversionRate, getTokenBalance } from '../utils/contractServices';
 import { TOKEN_OPTIONS } from '../utils/constants';
 import { validateAmount, validateTokenPair } from '../utils/validation';
-import Button from './common/Button';
-import LoadingSpinner from './common/LoadingSpinner';
 import './styles/LiquidityActions.css';
 
 const LiquidityActions: React.FC<{ account: string }> = ({ account }) => {
@@ -185,10 +182,7 @@ const LiquidityActions: React.FC<{ account: string }> = ({ account }) => {
   const handleMintTokens = async () => {
     setIsLoading(true);
     try {
-      // Mint TokenA
-      await mintTestTokens(TOKEN_OPTIONS[0].address, "1000");
-      // Mint TokenB
-      await mintTestTokens(TOKEN_OPTIONS[1].address, "1000");
+      await mintTestTokens();
       toast.success('Test tokens minted successfully!');
     } catch (error) {
       toast.error(`Failed to mint tokens: ${(error as Error).message}`);

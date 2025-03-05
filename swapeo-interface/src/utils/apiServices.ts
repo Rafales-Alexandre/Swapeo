@@ -65,9 +65,17 @@ export const getLiquidityProviders = async () => {
 export const getDexStats = async (): Promise<DexStats> => {
   try {
     const response = await fetch(`${API_BASE_URL}/stats`);
-    if (!response.ok) throw new Error('Erreur lors de la récupération des statistiques');
+    if (!response.ok) {
+      throw new Error('Failed to fetch stats');
+    }
     return await response.json();
   } catch (error) {
-    handleApiError(error);
+    console.error('Error fetching stats:', error);
+    return {
+      availableTokens: [],
+      swapCount: 0,
+      users: [],
+      liquidityProviders: []
+    };
   }
 }; 

@@ -1,8 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { toast } from 'react-toastify';
 import { getConversionRate, swapTokens, approveToken, getTokenBalance, getLiquidityPosition } from '../utils/contractServices';
-import { TOKEN_OPTIONS, ERROR_MESSAGES } from '../utils/constants';
+import { TOKEN_OPTIONS } from '../utils/constants';
 import './styles/TokenSwap.css';
+
+type Token = {
+  address: string;
+  label: string;
+};
 
 const TokenSwap: React.FC<{ account: string }> = ({ account }) => {
   const [fromAmount, setFromAmount] = useState('');
@@ -19,8 +24,8 @@ const TokenSwap: React.FC<{ account: string }> = ({ account }) => {
     tokenBAmount: '0',
     poolShare: '0'
   });
-  const [fromToken, setFromToken] = useState(TOKEN_OPTIONS[0]);
-  const [toToken, setToToken] = useState(TOKEN_OPTIONS[1]);
+  const [fromToken, setFromToken] = useState<Token>(TOKEN_OPTIONS[0]);
+  const [toToken, setToToken] = useState<Token>(TOKEN_OPTIONS[1]);
 
   // Récupérer les balances des tokens et les réserves de la pool
   useEffect(() => {
@@ -60,14 +65,13 @@ const TokenSwap: React.FC<{ account: string }> = ({ account }) => {
   const validateAmount = (amount: string) => {
     if (!amount || isNaN(Number(amount))) return false;
     
-    const toReserve = toToken.address === TOKEN_OPTIONS[0].address 
+    const toReserveAmount = toToken.address === TOKEN_OPTIONS[0].address 
       ? poolReserves.tokenAAmount 
       : poolReserves.tokenBAmount;
 
     const numAmount = Number(amount);
-    const numToReserve = Number(toReserve);
+    const numToReserve = Number(toReserveAmount);
 
-    // Calculer le montant de sortie estimé
     const estimatedOutput = getEstimatedOutput(numAmount);
     if (estimatedOutput > numToReserve) {
       return false;
@@ -237,12 +241,12 @@ const TokenSwap: React.FC<{ account: string }> = ({ account }) => {
     setFromAmount('');
     setToAmount('');
     setIsApproved(false);
-    const tempToken = fromToken;
-    setFromToken(toToken);
+    const tempToken = { ...fromToken };
+    setFromToken({ ...toToken });
     setToToken(tempToken);
   };
 
-  const getBalance = (token: typeof TOKEN_OPTIONS[0]) => {
+  const getBalance = (token: Token) => {
     return token.address === TOKEN_OPTIONS[0].address ? balances.tokenA : balances.tokenB;
   };
 

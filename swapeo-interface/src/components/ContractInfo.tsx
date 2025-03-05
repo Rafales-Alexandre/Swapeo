@@ -1,15 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import { toast } from 'react-toastify';
 import { getContractBalanceInETH, getNetworkStats, getAccountBalance, getNetworkName } from '../utils/contractServices';
-import Button from './common/Button';
-import LoadingSpinner from './common/LoadingSpinner';
 import './styles/ContractInfo.css';
 
 const ContractInfo: React.FC<{ account: string; onDisconnect: () => void }> = ({ account, onDisconnect }) => {
   const [balance, setBalance] = useState<string>("0");
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
-  const [isRefreshing, setIsRefreshing] = useState(false);
   const [networkName, setNetworkName] = useState<string>("Unknown Network");
   const [networkStats, setNetworkStats] = useState({
     gasPrice: '0',
@@ -19,7 +16,6 @@ const ContractInfo: React.FC<{ account: string; onDisconnect: () => void }> = ({
   const fetchData = async () => {
     try {
       setError(null);
-      setIsRefreshing(true);
       const [contractBalance, stats, network] = await Promise.all([
         getContractBalanceInETH(),
         getNetworkStats(),
@@ -34,8 +30,6 @@ const ContractInfo: React.FC<{ account: string; onDisconnect: () => void }> = ({
       console.error('Error fetching data:', error);
       toast('Erreur lors de la mise à jour des données');
       setIsLoading(false);
-    } finally {
-      setIsRefreshing(false);
     }
   };
 
@@ -54,10 +48,6 @@ const ContractInfo: React.FC<{ account: string; onDisconnect: () => void }> = ({
     } catch (err) {
       toast('Erreur lors de la copie');
     }
-  };
-
-  const handleRefresh = () => {
-    fetchData();
   };
 
   const handleDisconnect = () => {

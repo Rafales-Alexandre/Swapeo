@@ -1,5 +1,4 @@
-import React from 'react';
-import './StatsBanner.css';
+import './styles/StatsBanner.css';
 
 const StatsBanner = () => {
   return (
