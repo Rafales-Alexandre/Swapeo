@@ -63,7 +63,7 @@ const App: React.FC = () => {
             </Card>
 
             <Card
-              title="Liquidity Matrix"
+              title="Liquidity"
               subtitle="Manage system resources"
               icon={<img src={swapeoLiquidity} alt="Liquidity" className="card-icon" />}
             >

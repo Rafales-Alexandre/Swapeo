@@ -20,7 +20,9 @@ const LiquidityActions: React.FC<{ account: string }> = ({ account }) => {
   });
   const [poolInfo, setPoolInfo] = useState({
     rate: '0',
-    share: '0'
+    share: '0',
+    totalTokenA: '0',
+    totalTokenB: '0'
   });
   const [balances, setBalances] = useState({
     tokenA: '0',
@@ -32,6 +34,40 @@ const LiquidityActions: React.FC<{ account: string }> = ({ account }) => {
     const num = typeof value === 'string' ? Number(value) : value;
     if (isNaN(num)) return '0';
     return num.toFixed(4).replace(/\.?0+$/, '');
+  };
+
+  // Fonction pour calculer le montant du second token basé sur la formule du constant product
+  const calculateRequiredAmount = (amount: string, isTokenA: boolean) => {
+    if (!amount || Number(amount) === 0) return '0';
+    
+    const totalA = Number(poolInfo.totalTokenA);
+    const totalB = Number(poolInfo.totalTokenB);
+    
+    if (totalA === 0 || totalB === 0) return amount; // Premier dépôt, ratio 1:1
+    
+    const inputAmount = Number(amount);
+    let requiredAmount;
+    
+    if (isTokenA) {
+      // Si on ajoute du token A, calculer le token B requis
+      requiredAmount = (inputAmount * totalB) / totalA;
+    } else {
+      // Si on ajoute du token B, calculer le token A requis
+      requiredAmount = (inputAmount * totalA) / totalB;
+    }
+    
+    return formatNumber(requiredAmount.toString());
+  };
+
+  // Gestionnaire pour la mise à jour des montants
+  const handleAmountChange = (value: string, isFirstToken: boolean) => {
+    if (isFirstToken) {
+      setAmount1(value);
+      setAmount2(calculateRequiredAmount(value, true));
+    } else {
+      setAmount2(value);
+      setAmount1(calculateRequiredAmount(value, false));
+    }
   };
 
   useEffect(() => {
@@ -59,17 +95,22 @@ const LiquidityActions: React.FC<{ account: string }> = ({ account }) => {
   useEffect(() => {
     const fetchPoolInfo = async () => {
       try {
-        // Récupérer le taux de change (1 TokenA = X TokenB)
+        // Récupérer le taux de change et les totaux du pool
         const rate = await getConversionRate(
           TOKEN_OPTIONS[0].address,
           TOKEN_OPTIONS[1].address,
           "1"
         );
 
-        // Utiliser la position déjà récupérée pour le share
+        // Récupérer les totaux du pool (à implémenter dans contractServices)
+        const totalA = await getTokenBalance(TOKEN_OPTIONS[0].address, account);
+        const totalB = await getTokenBalance(TOKEN_OPTIONS[1].address, account);
+
         setPoolInfo({
           rate,
-          share: position.poolShare
+          share: position.poolShare,
+          totalTokenA: totalA,
+          totalTokenB: totalB
         });
       } catch (error) {
         console.error("Error fetching pool info:", error);
@@ -132,6 +173,16 @@ const LiquidityActions: React.FC<{ account: string }> = ({ account }) => {
       return;
     }
 
+    // Vérifier que les montants respectent le ratio du pool
+    const expectedAmount2 = calculateRequiredAmount(amount1, true);
+    const tolerance = 0.01; // 1% de tolérance
+    const ratio = Math.abs(Number(amount2) - Number(expectedAmount2)) / Number(expectedAmount2);
+
+    if (ratio > tolerance && Number(poolInfo.totalTokenA) > 0) {
+      toast.error(`Les montants doivent respecter le ratio du pool (${formatNumber(poolInfo.rate)} TKB par TKA)`);
+      return;
+    }
+
     setIsLoading(true);
     try {
       await depositLiquidity(
@@ -140,11 +191,11 @@ const LiquidityActions: React.FC<{ account: string }> = ({ account }) => {
         amount1,
         amount2
       );
-      toast.success('Liquidity deposited successfully!');
+      toast.success('Liquidité déposée avec succès !');
       setAmount1('');
       setAmount2('');
     } catch (error) {
-      toast.error(`Deposit failed: ${(error as Error).message}`);
+      toast.error(`Échec du dépôt : ${(error as Error).message}`);
     } finally {
       setIsLoading(false);
     }
@@ -249,58 +300,48 @@ const LiquidityActions: React.FC<{ account: string }> = ({ account }) => {
             <span>{activeTab === 'add' ? 'Montant à déposer' : 'Montant à retirer'}</span>
             <span className="balance">Balance: {formatNumber(balances.tokenA)} TKA</span>
           </div>
-          <div className="matrix-input">
-            <input
-              type="text"
-              value={amount1}
-              onChange={(e) => setAmount1(e.target.value)}
-              placeholder="0.0"
-            />
-            <button className="token-selector">
-              <span className="token-icon">TKA</span>
-            </button>
-          </div>
+          <input
+            type="number"
+            value={amount1}
+            onChange={(e) => handleAmountChange(e.target.value, true)}
+            placeholder="0.0"
+            disabled={isLoading || activeTab === 'remove'}
+          />
+          <button
+            className="approve-btn"
+            onClick={() => handleApprove(TOKEN_OPTIONS[0].address, amount1)}
+            disabled={isApproving || !amount1}
+          >
+            {isApproving ? 'Approving...' : 'Approve TKA'}
+          </button>
         </div>
 
         {activeTab === 'add' && (
-          <>
-            <div className="plus-indicator">+</div>
-
-            <div className="input-group">
-              <div className="input-header">
-                <span>Montant à déposer</span>
-                <span className="balance">Balance: {formatNumber(balances.tokenB)} TKB</span>
-              </div>
-              <div className="matrix-input">
-                <input
-                  type="text"
-                  value={amount2}
-                  onChange={(e) => setAmount2(e.target.value)}
-                  placeholder="0.0"
-                />
-                <button className="token-selector">
-                  TKB
-                  <span className="dropdown-icon">▼</span>
-                </button>
-              </div>
+          <div className="input-group">
+            <div className="input-header">
+              <span>Montant équivalent (basé sur le ratio du pool)</span>
+              <span className="balance">Balance: {formatNumber(balances.tokenB)} TKB</span>
             </div>
-          </>
+            <input
+              type="number"
+              value={amount2}
+              onChange={(e) => handleAmountChange(e.target.value, false)}
+              placeholder="0.0"
+              disabled={isLoading}
+            />
+            <button
+              className="approve-btn"
+              onClick={() => handleApprove(TOKEN_OPTIONS[1].address, amount2)}
+              disabled={isApproving || !amount2}
+            >
+              {isApproving ? 'Approving...' : 'Approve TKB'}
+            </button>
+          </div>
         )}
       </div>
 
       {/* Action Buttons */}
       <div className="matrix-actions">
-        <button 
-          className="approve-btn"
-          onClick={() => {
-            handleApprove(TOKEN_OPTIONS[0].address, amount1);
-            handleApprove(TOKEN_OPTIONS[1].address, amount2);
-          }}
-          disabled={isApproving || !amount1 || !amount2}
-        >
-          {isApproving ? 'Approving...' : 'Approve Tokens'}
-          <span className="btn-glow"></span>
-        </button>
         <button 
           className="action-btn"
           onClick={activeTab === 'add' ? handleDeposit : handleWithdraw}
