@@ -38,7 +38,7 @@ const App: React.FC = () => {
             <div className="header-account">
               <div className="status-badge">
                 <span className="status-dot"></span>
-                Connected as {userRole === 'trader' ? 'Trader' : 'Provider'}
+                Connecté en tant que {userRole === 'trader' ? 'Trader' : 'Provider'}
               </div>
               <div className="wallet-address">
                 {account.slice(0, 6)}...{account.slice(-4)}
@@ -55,8 +55,8 @@ const App: React.FC = () => {
 
         {!account ? (
           <Card
-            title="Enter Swapeo"
-            subtitle="Connect your wallet to access the network"
+            title="Bienvenue sur Swapeo"
+            subtitle="Connectez votre wallet pour accéder au réseau"
             icon="🔌"
             className="welcome-card"
           >
@@ -66,17 +66,17 @@ const App: React.FC = () => {
           <div className="cards-grid">
             {userRole === 'trader' ? (
               <Card
-                title="Token Exchange"
-                subtitle="Execute secure token transfers"
+                title="Échange de Tokens"
+                subtitle="Effectuez des transferts de tokens sécurisés"
                 icon={<img src={swapeoSwap} alt="Swap" className="card-icon" />}
               >
                 <TokenSwap account={account} />
               </Card>
             ) : (
               <Card
-                title="Liquidity"
-                subtitle="Manage system resources"
-                icon={<img src={swapeoLiquidity} alt="Liquidity" className="card-icon" />}
+                title="Liquidité"
+                subtitle="Gérez les ressources du système"
+                icon={<img src={swapeoLiquidity} alt="Liquidité" className="card-icon" />}
               >
                 <LiquidityActions account={account} />
               </Card>

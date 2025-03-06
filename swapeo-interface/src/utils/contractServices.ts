@@ -10,7 +10,7 @@ let isInitialized = false;
 
 const switchToSepoliaNetwork = async (): Promise<void> => {
   if (!window.ethereum) {
-    throw new Error("MetaMask is not installed");
+    throw new Error("MetaMask n'est pas installé");
   }
 
   const sepoliaChainId = "0xaa36a7"; // 11155111 en hexadécimal
@@ -41,17 +41,17 @@ const switchToSepoliaNetwork = async (): Promise<void> => {
                 symbol: "ETH",
                 decimals: 18,
               },
-              rpcUrls: ["https://eth-sepolia.g.alchemy.com/v2/XXuXkKK5ykgeiNzxWN5jDdJxMTObRDte"],
+              rpcUrls: [`https://eth-sepolia.g.alchemy.com/v2/${import.meta.env.VITE_ALCHEMY_API_KEY || ''}`],
               blockExplorerUrls: ["https://sepolia.etherscan.io"],
             },
           ],
         });
       } catch (addError) {
-        console.error("Failed to add Sepolia network:", addError);
+        console.error("Échec de l'ajout du réseau Sepolia:", addError);
         throw addError;
       }
     } else {
-      console.error("Failed to switch network:", error);
+      console.error("Échec du changement de réseau:", error);
       throw error;
     }
   }
@@ -60,7 +60,7 @@ const switchToSepoliaNetwork = async (): Promise<void> => {
 const initialize = async (): Promise<void> => {
   try {
     if (!window.ethereum) {
-      throw new Error("MetaMask is not installed");
+      throw new Error("MetaMask n'est pas installé");
     }
     
     provider = new BrowserProvider(window.ethereum, {
@@ -97,8 +97,7 @@ const initialize = async (): Promise<void> => {
     
     isInitialized = true;
   } catch (error) {
-    console.error("Initialization failed:", error);
-    isInitialized = false;
+    console.error("Échec de l'initialisation:", error);
     throw error;
   }
 };
@@ -108,27 +107,25 @@ initialize().catch((error) => console.error("Initial setup failed:", error));
 export const requestAccount = async (): Promise<string | null> => {
   try {
     if (!window.ethereum) {
-      throw new Error("MetaMask is not installed");
+      throw new Error("MetaMask n'est pas installé");
     }
-
+    
     if (!isInitialized) {
       await initialize();
     }
-
+    
     if (!provider) {
-      throw new Error("Provider not initialized");
+      throw new Error("Le provider n'est pas initialisé");
     }
-
-    const accounts = await window.ethereum.request({ method: "eth_accounts" });
-    if (accounts.length === 0) {
-      const newAccounts = await provider.send("eth_requestAccounts", []);
-      return newAccounts[0];
+    
+    const accounts = await provider.send("eth_requestAccounts", []);
+    if (accounts.length > 0) {
+      return accounts[0];
     }
-
-    return accounts[0];
+    return null;
   } catch (error) {
-    console.error("Error requesting account:", error);
-    throw error;
+    console.error("Erreur lors de la demande de compte:", error);
+    return null;
   }
 };
 
@@ -212,21 +209,19 @@ export const getConversionRate = async (
   tokenB: string,
   amount: string
 ): Promise<string> => {
+  if (!isInitialized) {
+    await initialize();
+  }
+  
+  if (!contract) {
+    throw new Error("Le contrat n'est pas initialisé");
+  }
+  
   try {
-    if (!contract) {
-      await initialize();
-      if (!contract) {
-        throw new Error("Failed to initialize contract");
-      }
-    }
-    const amountInWei = parseUnits(amount, 18);
-    const amountOutWei = await contract.getAmountOut(tokenA, tokenB, amountInWei);
-    if (amountOutWei === 0n) {
-      return "0";
-    }
-    return formatUnits(amountOutWei, 18);
+    const response = await contract.getConversionRate(tokenA, tokenB, parseUnits(amount, 18));
+    return formatUnits(response, 18);
   } catch (error) {
-    console.error("Error fetching conversion rate:", error);
+    console.error("Erreur lors de la conversion:", error);
     throw error;
   }
 };
@@ -236,18 +231,19 @@ export const swapTokens = async (
   tokenB: string,
   amount: string
 ): Promise<void> => {
+  if (!isInitialized) {
+    await initialize();
+  }
+  
+  if (!contract) {
+    throw new Error("Le contrat n'est pas initialisé");
+  }
+  
   try {
-    if (!contract) {
-      await initialize();
-      if (!contract) {
-        throw new Error("Failed to initialize contract");
-      }
-    }
-    const amountInWei = parseUnits(amount, 18);
-    const tx = await contract.swap(tokenA, tokenB, amountInWei);
+    const tx = await contract.swapTokens(tokenA, tokenB, parseUnits(amount, 18));
     await tx.wait();
   } catch (error) {
-    console.error("Error swapping tokens:", error);
+    console.error("Erreur lors de l'échange:", error);
     throw error;
   }
 };
@@ -258,19 +254,24 @@ export const depositLiquidity = async (
   amountA: string,
   amountB: string
 ): Promise<void> => {
+  if (!isInitialized) {
+    await initialize();
+  }
+  
+  if (!contract) {
+    throw new Error("Le contrat n'est pas initialisé");
+  }
+  
   try {
-    if (!contract) {
-      await initialize();
-      if (!contract) {
-        throw new Error("Failed to initialize contract");
-      }
-    }
-    const amountAWei = parseUnits(amountA, 18);
-    const amountBWei = parseUnits(amountB, 18);
-    const tx = await contract.deposit(tokenA, tokenB, amountAWei, amountBWei);
+    const tx = await contract.addLiquidity(
+      tokenA,
+      tokenB,
+      parseUnits(amountA, 18),
+      parseUnits(amountB, 18)
+    );
     await tx.wait();
   } catch (error) {
-    console.error("Error depositing liquidity:", error);
+    console.error("Erreur lors du dépôt de liquidité:", error);
     throw error;
   }
 };
@@ -280,18 +281,19 @@ export const withdrawLiquidity = async (
   tokenB: string,
   amountA: string
 ): Promise<void> => {
+  if (!isInitialized) {
+    await initialize();
+  }
+  
+  if (!contract) {
+    throw new Error("Le contrat n'est pas initialisé");
+  }
+  
   try {
-    if (!contract) {
-      await initialize();
-      if (!contract) {
-        throw new Error("Failed to initialize contract");
-      }
-    }
-    const amountAWei = parseUnits(amountA, 18);
-    const tx = await contract.withdraw(tokenA, tokenB, amountAWei);
+    const tx = await contract.removeLiquidity(tokenA, tokenB, parseUnits(amountA, 18));
     await tx.wait();
   } catch (error) {
-    console.error("Error withdrawing liquidity:", error);
+    console.error("Erreur lors du retrait de liquidité:", error);
     throw error;
   }
 };

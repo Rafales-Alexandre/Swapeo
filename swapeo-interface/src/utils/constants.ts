@@ -24,9 +24,9 @@ export const TRANSACTION_STATUS = {
 } as const;
 
 export const ERROR_MESSAGES = {
-  INVALID_AMOUNT: "Please enter a valid amount",
-  SAME_TOKENS: "Cannot swap the same token",
-  INSUFFICIENT_BALANCE: "Insufficient balance",
-  FILL_ALL_FIELDS: "Please fill all fields with valid amounts",
-  NO_LIQUIDITY: "No liquidity available for this pair"
+  INVALID_AMOUNT: "Veuillez entrer un montant valide",
+  SAME_TOKENS: "Impossible d'échanger le même token",
+  INSUFFICIENT_BALANCE: "Solde insuffisant",
+  FILL_ALL_FIELDS: "Veuillez remplir tous les champs avec des montants valides",
+  NO_LIQUIDITY: "Aucune liquidité disponible pour cette paire"
 } as const;

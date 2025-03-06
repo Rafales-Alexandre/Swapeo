@@ -13,7 +13,7 @@ interface DexStats {
 
 // Fonction pour gérer les erreurs de l'API
 const handleApiError = (error: any) => {
-  console.error('API Error:', error);
+  console.error('Erreur API:', error);
   throw new Error(error.response?.data?.error || 'Une erreur est survenue');
 };
 
@@ -66,11 +66,11 @@ export const getDexStats = async (): Promise<DexStats> => {
   try {
     const response = await fetch(`${API_BASE_URL}/stats`);
     if (!response.ok) {
-      throw new Error('Failed to fetch stats');
+      throw new Error('Erreur lors de la récupération des statistiques');
     }
     return await response.json();
   } catch (error) {
-    console.error('Error fetching stats:', error);
+    console.error('Erreur lors de la récupération des statistiques:', error);
     return {
       availableTokens: [],
       swapCount: 0,
