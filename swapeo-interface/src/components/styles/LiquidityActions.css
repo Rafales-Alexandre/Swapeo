@@ -496,16 +496,10 @@
 
 /* Loading states */
 .loading-text {
-  color: rgba(76, 175, 80, 0.7);
-  font-size: 0.9rem;
-  font-family: 'JetBrains Mono', monospace;
-  animation: pulse 1.5s infinite;
-}
-
-@keyframes pulse {
-  0% { opacity: 0.6; }
-  50% { opacity: 1; }
-  100% { opacity: 0.6; }
+  color: white;
+  margin-top: 1rem;
+  font-size: 1rem;
+  text-align: center;
 }
 
 .mode-title {
@@ -982,4 +976,318 @@
   margin-bottom: 0.5rem;
   border: 1px solid var(--border-color);
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+/* Styles pour LiquidityActions.css */
+
+/* Conteneur principal */
+.liquidity-container {
+  background: var(--card-background);
+  border-radius: 12px;
+  padding: 1.5rem;
+  box-shadow: 0 4px 14px var(--shadow-color);
+  width: 100%;
+  max-width: 550px;
+  margin: 0 auto;
+  position: relative;
+}
+
+/* Styles des onglets */
+.tabs-container {
+  display: flex;
+  margin-bottom: 1.5rem;
+  border-radius: 8px;
+  overflow: hidden;
+  background: var(--background-light);
+}
+
+.tab-button {
+  flex: 1;
+  background: none;
+  border: none;
+  padding: 0.75rem;
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  color: var(--text-color-secondary);
+}
+
+.tab-button:hover {
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text-color);
+}
+
+.tab-button.active {
+  background: var(--accent-color);
+  color: white;
+  font-weight: 600;
+}
+
+/* Conteneur de sélection de token */
+.token-selection {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.token-select-container {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.token-select-container label {
+  font-size: 0.875rem;
+  margin-bottom: 0.5rem;
+  color: var(--text-color-secondary);
+}
+
+.token-select-container select {
+  padding: 0.75rem;
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
+  background: var(--background-light);
+  color: var(--text-color);
+  font-size: 1rem;
+  cursor: pointer;
+  outline: none;
+  transition: all 0.3s ease;
+}
+
+.token-select-container select:hover {
+  border-color: var(--accent-color);
+}
+
+.token-select-container select:focus {
+  border-color: var(--accent-color);
+  box-shadow: 0 0 0 2px rgba(var(--accent-color-rgb), 0.2);
+}
+
+/* Style pour la notification de nouvelle paire */
+.new-pair-notice {
+  background: rgba(var(--accent-color-rgb), 0.1);
+  border-left: 4px solid var(--accent-color);
+  padding: 0.75rem 1rem;
+  margin-bottom: 1rem;
+  border-radius: 4px;
+  font-size: 0.875rem;
+  color: var(--accent-color);
+}
+
+/* Style pour les entrées de token */
+.token-inputs {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.token-input-container {
+  position: relative;
+  border-radius: 12px;
+  border: 1px solid var(--border-color);
+  background: var(--background-light);
+  padding: 1rem;
+  transition: all 0.3s ease;
+}
+
+.token-input-container:hover {
+  border-color: var(--accent-color);
+}
+
+.token-input-header {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 0.5rem;
+  font-size: 0.875rem;
+  color: var(--text-color-secondary);
+}
+
+.token-input {
+  width: 100%;
+  padding: 0.5rem 0;
+  font-size: 1.5rem;
+  background: transparent;
+  border: none;
+  color: var(--text-color);
+  outline: none;
+  font-weight: 500;
+}
+
+.max-button {
+  position: absolute;
+  right: 1rem;
+  bottom: 1rem;
+  background: rgba(var(--accent-color-rgb), 0.1);
+  border: none;
+  color: var(--accent-color);
+  padding: 0.3rem 0.6rem;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.max-button:hover {
+  background: rgba(var(--accent-color-rgb), 0.2);
+}
+
+/* Avertissement de ratio */
+.ratio-warning {
+  background: rgba(255, 150, 50, 0.1);
+  border-left: 4px solid rgb(255, 150, 50);
+  padding: 0.75rem 1rem;
+  margin-bottom: 1rem;
+  border-radius: 4px;
+  font-size: 0.875rem;
+  color: rgb(255, 150, 50);
+}
+
+/* Information sur la pool */
+.pool-info {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.pool-info-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.pool-info-label {
+  font-size: 0.75rem;
+  color: var(--text-color-secondary);
+}
+
+.pool-info-value {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--text-color);
+}
+
+/* Boutons d'action */
+.action-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.action-button {
+  padding: 1rem;
+  border-radius: 8px;
+  border: none;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  background: var(--accent-color);
+  color: white;
+}
+
+.action-button:hover:not(:disabled) {
+  background: var(--accent-color-hover);
+  transform: translateY(-2px);
+}
+
+.action-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.approve {
+  background: var(--background-light);
+  color: var(--accent-color);
+  border: 1px solid var(--accent-color);
+}
+
+.approve:hover:not(:disabled) {
+  background: rgba(var(--accent-color-rgb), 0.1);
+}
+
+.deposit {
+  background: var(--accent-color);
+  color: white;
+}
+
+.withdraw {
+  background: var(--accent-color);
+  color: white;
+}
+
+/* Section des frais */
+.fees-section {
+  padding: 1rem;
+  margin-bottom: 1rem;
+  border-radius: 8px;
+  background: var(--background-light);
+}
+
+.fees-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.fees-label {
+  font-size: 0.875rem;
+  color: var(--text-color-secondary);
+}
+
+.fees-value {
+  font-size: 1rem;
+  font-weight: 500;
+  color: var(--text-color);
+}
+
+/* Overlay de chargement */
+.loading-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(4px);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  border-radius: 12px;
+  z-index: 10;
+}
+
+.loading-spinner {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: 3px solid rgba(255, 255, 255, 0.1);
+  border-top-color: var(--accent-color);
+  animation: spin 1s linear infinite;
+}
+
+/* Animation pour le spinner */
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Adaptation mobile */
+@media (max-width: 768px) {
+  .liquidity-container {
+    padding: 1rem;
+    border-radius: 8px;
+  }
+  
+  .pool-info {
+    grid-template-columns: 1fr;
+  }
+  
+  .token-selection {
+    flex-direction: column;
+  }
 } 

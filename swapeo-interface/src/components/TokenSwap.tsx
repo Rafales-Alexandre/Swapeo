@@ -33,23 +33,41 @@ const TokenSwap: React.FC<{ account: string }> = ({ account }) => {
   useEffect(() => {
     const fetchData = async () => {
       try {
+        console.log("Récupération des balances pour le compte:", account);
+        console.log("Adresses des tokens utilisées:", {
+          tokenA: TOKENS.TOKEN_A,
+          tokenB: TOKENS.TOKEN_B
+        });
         
-        // Utiliser les anciennes adresses pour les balances
-        const balanceA = await getTokenBalance(TOKENS.TOKEN_A_OLD, account);
-        const balanceB = await getTokenBalance(TOKENS.TOKEN_B_OLD, account);
+        // Utiliser les adresses des tokens actuels
+        const balanceA = await getTokenBalance(TOKENS.TOKEN_A, account);
+        const balanceB = await getTokenBalance(TOKENS.TOKEN_B, account);
         
+        console.log(`Soldes récupérés pour le compte ${account}:`, {
+          tokenA: balanceA,
+          tokenB: balanceB
+        });
+        
+        // Vérifier si les balances sont des chaînes vides ou "0"
+        const tokenABalance = balanceA && balanceA !== "0" ? balanceA : "0";
+        const tokenBBalance = balanceB && balanceB !== "0" ? balanceB : "0";
         
         // Les réserves utilisent maintenant les nouvelles adresses dans getLiquidityPosition
         const reserves = await getLiquidityPosition(account);
         
         setBalances({
-          tokenA: balanceA,
-          tokenB: balanceB
+          tokenA: tokenABalance,
+          tokenB: tokenBBalance
         });
         setPoolReserves(reserves);
         
+        console.log("État des balances après mise à jour:", {
+          tokenA: tokenABalance,
+          tokenB: tokenBBalance
+        });
+        
       } catch (error) {
-        console.error("Error fetching data:", error);
+        console.error("Erreur lors de la récupération des données:", error);
         toast.error("Erreur lors de la récupération des données");
       }
     };
@@ -156,22 +174,48 @@ const TokenSwap: React.FC<{ account: string }> = ({ account }) => {
             return;
           }
 
-          const rate = await getConversionRate(
-            fromToken.address,
-            toToken.address,
-            fromAmount
-          );
-          setToAmount(rate);
+          // Détecter si on utilise les anciennes ou les nouvelles adresses
+          const isFromOld = fromToken.address === TOKENS.TOKEN_A_OLD || fromToken.address === TOKENS.TOKEN_B_OLD;
+          const isToOld = toToken.address === TOKENS.TOKEN_A_OLD || toToken.address === TOKENS.TOKEN_B_OLD;
           
-          // Calculer le taux pour 1 token
-          const baseRate = await getConversionRate(
-            fromToken.address,
-            toToken.address,
+          console.log("Tokens sélectionnés:", {
+            fromToken: fromToken.address + (isFromOld ? " (ancien)" : ""),
+            toToken: toToken.address + (isToOld ? " (ancien)" : ""),
+            fromAmount
+          });
+          
+          // Utiliser les anciennes adresses pour le taux d'échange, qui fonctionnent mieux
+          console.log("Utilisation des anciennes adresses pour le taux d'échange");
+          let sourceTokenAddress = isFromOld ? fromToken.address : TOKENS.TOKEN_A_OLD;
+          let targetTokenAddress = isToOld ? toToken.address : TOKENS.TOKEN_B_OLD;
+          
+          // Si les adresses source/cible sont les mêmes, inverser la cible
+          if (sourceTokenAddress === targetTokenAddress) {
+            targetTokenAddress = TOKENS.TOKEN_B_OLD;
+          }
+          
+          console.log("Adresses utilisées pour le taux:", {
+            source: sourceTokenAddress,
+            target: targetTokenAddress
+          });
+          
+          // Obtenir le taux de conversion avec les anciennes adresses
+          const conversionRate = await getConversionRate(
+            sourceTokenAddress,
+            targetTokenAddress,
             "1"
           );
-          setExchangeRate(baseRate);
+          
+          console.log("Taux de conversion récupéré:", conversionRate);
+          setExchangeRate(conversionRate);
+          
+          // Calculer le montant de sortie en utilisant le taux
+          const outputAmount = (Number(fromAmount) * Number(conversionRate)).toString();
+          console.log("Montant de sortie calculé:", outputAmount);
+          setToAmount(outputAmount);
+          
         } catch (error) {
-          console.error("Error updating rate:", error);
+          console.error("Erreur lors de la mise à jour du taux:", error);
           setToAmount('');
           setExchangeRate('0');
         }
@@ -180,18 +224,17 @@ const TokenSwap: React.FC<{ account: string }> = ({ account }) => {
         setExchangeRate('0');
       }
     };
+
     updateRate();
-  }, [fromAmount, fromToken, toToken, poolReserves]);
+  }, [fromAmount, fromToken.address, toToken.address]);
 
   const handleSwap = async () => {
-    if (!fromAmount || !toAmount || isNaN(Number(fromAmount))) {
-      toast.error("Veuillez entrer des montants valides");
-      return;
-    }
-
+    if (!account || !fromAmount) return;
+    
     setIsLoading(true);
+    setLoadingStep('idle');
+    
     try {
-      // Si les tokens ne sont pas approuvés, on les approuve d'abord
       if (!isApproved) {
         setLoadingStep('approving');
         await approveToken(fromToken.address, fromAmount);
@@ -199,18 +242,30 @@ const TokenSwap: React.FC<{ account: string }> = ({ account }) => {
         setIsApproved(true);
       }
       
-      // Puis on effectue l'échange
+      // Puis on effectue l'échange avec toutes les options de fallback
       setLoadingStep('swapping');
-      await swapTokens(fromToken.address, toToken.address, fromAmount);
-      toast.success("Échange réussi!");
-      setFromAmount('');
-      setToAmount('');
-      setIsApproved(false);
+      const swapResult = await swapTokens(fromToken.address, toToken.address, fromAmount);
       
-      // Rafraîchir les balances avec les anciennes adresses
-      const balanceA = await getTokenBalance(TOKENS.TOKEN_A_OLD, account);
-      const balanceB = await getTokenBalance(TOKENS.TOKEN_B_OLD, account);
-      setBalances({ tokenA: balanceA, tokenB: balanceB });
+      if (swapResult.success) {
+        if (swapResult.directUniswap) {
+          toast.success("Échange réussi via Uniswap directement!");
+        } else if (swapResult.uniswapFallback) {
+          toast.success("Échange réussi via Uniswap!");
+        } else {
+          toast.success("Échange réussi via SwapeoDEX!");
+        }
+        
+        setFromAmount('');
+        setToAmount('');
+        setIsApproved(false);
+        
+        // Rafraîchir les balances avec les anciennes adresses
+        const balanceA = await getTokenBalance(TOKENS.TOKEN_A_OLD, account);
+        const balanceB = await getTokenBalance(TOKENS.TOKEN_B_OLD, account);
+        setBalances({ tokenA: balanceA, tokenB: balanceB });
+      } else {
+        toast.error(swapResult.error || "Erreur lors de l'échange");
+      }
     } catch (error: any) {
       console.error("Error during swap process:", error);
       toast.error(error.message || "Erreur lors de l'opération");
