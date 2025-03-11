@@ -582,7 +582,7 @@ const LiquidityActions: React.FC<{ account: string }> = ({ account }) => {
         >
           Retirer des liquidités
         </button>
-        <button 
+        {/* <button 
           className="refresh-button" 
           onClick={updatePoolShare}
           disabled={isLoading}
@@ -595,7 +595,7 @@ const LiquidityActions: React.FC<{ account: string }> = ({ account }) => {
           disabled={isLoading}
         >
           Diagnostics
-        </button>
+        </button> */}
       </div>
       
       <div className="token-selection">
