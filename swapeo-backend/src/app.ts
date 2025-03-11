@@ -20,6 +20,7 @@ app.get('/health', (req, res) => {
   res.json({ status: 'ok' });
 });
 
+// Démarrer le serveur
 app.listen(port, () => {
-  console.log(`Server is running on port ${port}`);
+  console.log(`Serveur démarré sur le port ${port}`);
 }); 

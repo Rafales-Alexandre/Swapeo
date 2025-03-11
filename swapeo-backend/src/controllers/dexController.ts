@@ -1,65 +1,70 @@
 import { Request, Response } from 'express';
-import { DexService } from '../services/dexService';
+import { SupabaseService } from '../services/supabaseService';
 
-const dexService = new DexService();
+const supabaseService = new SupabaseService();
 
-// Get list of available tokens
+// Récupérer la liste des tokens disponibles
 export const getTokens = async (req: Request, res: Response) => {
   try {
-    const tokens = await dexService.getAvailableTokens();
+    const tokens = await supabaseService.getTokens();
     res.json(tokens);
   } catch (error) {
+    console.error('Erreur lors de la récupération des tokens:', error);
     res.status(500).json({ error: 'Erreur lors de la récupération des tokens' });
   }
 };
 
-// Get total number of swaps
+// Récupérer le nombre total de swaps
 export const getSwapCount = async (req: Request, res: Response) => {
   try {
-    const count = await dexService.getSwapCount();
+    const count = await supabaseService.getSwapCount();
     res.json({ count });
   } catch (error) {
+    console.error('Erreur lors de la récupération du nombre de swaps:', error);
     res.status(500).json({ error: 'Erreur lors de la récupération du nombre de swaps' });
   }
 };
 
-// Get list of users who have interacted with the protocol
+// Récupérer la liste des utilisateurs
 export const getUsers = async (req: Request, res: Response) => {
   try {
-    const users = await dexService.getUsers();
+    const users = await supabaseService.getUsers();
     res.json(users);
   } catch (error) {
+    console.error('Erreur lors de la récupération des utilisateurs:', error);
     res.status(500).json({ error: 'Erreur lors de la récupération des utilisateurs' });
   }
 };
 
-// Get list of liquidity providers
+// Récupérer la liste des fournisseurs de liquidité
 export const getLiquidityProviders = async (req: Request, res: Response) => {
   try {
-    const providers = await dexService.getLiquidityProviders();
+    const providers = await supabaseService.getLiquidityProviders();
     res.json(providers);
   } catch (error) {
+    console.error('Erreur lors de la récupération des fournisseurs de liquidité:', error);
     res.status(500).json({ error: 'Erreur lors de la récupération des fournisseurs de liquidité' });
   }
 };
 
-// Get all stats in one request
+// Obtenir toutes les statistiques en une seule requête
 export const getAllStats = async (req: Request, res: Response) => {
   try {
-    const [availableTokens, swapCount, users, liquidityProviders] = await Promise.all([
-      dexService.getAvailableTokens(),
-      dexService.getSwapCount(),
-      dexService.getUsers(),
-      dexService.getLiquidityProviders()
+    const [tokens, swapCount, users, liquidityProviders] = await Promise.all([
+      supabaseService.getTokens(),
+      supabaseService.getSwapCount(),
+      supabaseService.getUsers(),
+      supabaseService.getLiquidityProviders()
     ]);
 
     res.json({
-      availableTokens,
+      tokens,
       swapCount,
       users,
       liquidityProviders
     });
   } catch (error) {
+    console.error('Erreur lors de la récupération des statistiques:', error);
     res.status(500).json({ error: 'Erreur lors de la récupération des statistiques' });
   }
 }; 

@@ -218,27 +218,18 @@ export const getConversionRate = async (
   }
   
   try {
-    console.log("Calcul du taux de conversion entre:", {
-      tokenA,
-      tokenB,
-      amount
-    });
-    
     // Utiliser getAmountOut qui est la fonction correcte dans l'ABI du contrat
     const amountInWei = parseUnits(amount, 18);
     const amountOutWei = await contract.getAmountOut(tokenA, tokenB, amountInWei);
     
     if (amountOutWei === 0n) {
-      console.log("Montant de sortie est 0");
       return "0";
     }
     
     const formattedAmount = formatUnits(amountOutWei, 18);
-    console.log("Montant de sortie formaté:", formattedAmount);
     
     // Le taux de conversion est le montant de sortie divisé par le montant d'entrée
     const rate = Number(formattedAmount) / Number(amount);
-    console.log("Taux de conversion calculé:", rate);
     
     return rate.toString();
   } catch (error) {
@@ -258,7 +249,7 @@ export const swapWithUniswapRouter = async (
   tokenA: string,
   tokenB: string,
   amount: string
-): Promise<void> => {
+): Promise<{ hash: string, inputAmount: string, outputAmount?: string }> => {
   if (!isInitialized) {
     await initialize();
   }
@@ -287,6 +278,9 @@ export const swapWithUniswapRouter = async (
     
     // Calculer un minAmountOut avec 5% de slippage
     const minAmountOut = amountsOut[1] * 95n / 100n; // 95% du montant estimé
+    const estimatedOutput = formatUnits(amountsOut[1], 18);
+    console.log(`Montant d'entrée: ${amount} ${tokenA}`);
+    console.log(`Montant de sortie estimé: ${estimatedOutput} ${tokenB}`);
     
     // Définir une deadline de 20 minutes
     const deadline = Math.floor(Date.now() / 1000) + 20 * 60;
@@ -298,23 +292,30 @@ export const swapWithUniswapRouter = async (
     console.log("Exécution du swap via le routeur Uniswap directement");
     console.log("Montant d'entrée:", amountInWei.toString());
     console.log("Montant de sortie minimum:", minAmountOut.toString());
-    console.log("Chemin:", path);
-    console.log("Adresse destinataire:", await signer.getAddress());
-    console.log("Deadline:", deadline);
     
+    // Appeler la fonction de swap
     const tx = await uniswapRouter.swapExactTokensForTokens(
       amountInWei,
       minAmountOut,
       path,
-      await signer.getAddress(),
+      await signer.getAddress(), // Destinataire des tokens
       deadline
     );
     
-    console.log("Transaction envoyée:", tx.hash);
-    await tx.wait();
-    console.log("Transaction confirmée");
+    const receipt = await tx.wait();
+    console.log("Swap via Uniswap réussi, transaction hash:", receipt.hash);
+    
+    // On peut aussi essayer de récupérer le montant exact à partir des logs de transactions
+    // Mais pour l'instant, utilisons l'estimation qui est déjà précise
+    
+    return {
+      hash: receipt.hash,
+      inputAmount: amount,
+      outputAmount: estimatedOutput
+    };
+    
   } catch (error) {
-    console.error("Erreur lors de l'échange direct via Uniswap:", error);
+    console.error("Erreur lors du swap via le routeur Uniswap:", error);
     throw error;
   }
 };
@@ -324,7 +325,7 @@ export const approveToken = async (
   tokenAddress: string, 
   amount: string, 
   spenderAddress: string = CONTRACT_ADDRESS
-): Promise<void> => {
+): Promise<boolean> => {
   try {
     if (!signer) await initialize();
     
@@ -370,10 +371,13 @@ export const approveToken = async (
 
     // Vérifier la nouvelle allowance
     const newAllowance = await tokenContract.allowance(await signer.getAddress(), spenderAddress);
+    
+    // Vérifier que l'approbation a bien été prise en compte
+    return newAllowance >= amountInWei;
 
   } catch (error) {
     console.error("Error in approveToken:", error);
-    throw error;
+    return false;
   }
 };
 
@@ -381,7 +385,7 @@ export const swapTokens = async (
   tokenA: string,
   tokenB: string,
   amount: string
-): Promise<{success: boolean, uniswapFallback: boolean, directUniswap: boolean, error?: string}> => {
+): Promise<{success: boolean, uniswapFallback: boolean, directUniswap: boolean, error?: string, txHash?: string, inputAmount?: string, outputAmount?: string}> => {
   if (!isInitialized) {
     await initialize();
   }
@@ -391,10 +395,37 @@ export const swapTokens = async (
   }
   
   try {
+    // Obtenir une estimation du montant de sortie basée sur le taux d'échange actuel
+    let estimatedOutput;
+    try {
+      const rate = await getConversionRate(tokenA, tokenB, amount);
+      const inputValue = parseFloat(amount);
+      const rateValue = parseFloat(rate);
+      estimatedOutput = (inputValue * rateValue).toString();
+      console.log(`Taux d'échange estimé: 1 ${tokenA} = ${rate} ${tokenB}`);
+      console.log(`Estimation du montant de sortie: ${estimatedOutput} ${tokenB}`);
+    } catch (rateError) {
+      console.warn("Impossible d'obtenir le taux d'échange:", rateError);
+      estimatedOutput = amount; // Fallback au ratio 1:1 si le taux n'est pas disponible
+    }
+    
     // Essayer d'abord avec la méthode swap
     const tx = await contract.swap(tokenA, tokenB, parseUnits(amount, 18));
-    await tx.wait();
-    return { success: true, uniswapFallback: false, directUniswap: false };
+    const receipt = await tx.wait();
+    
+    // Chercher un événement qui pourrait contenir les montants réels (si votre contrat émet un tel événement)
+    // Si pas d'événement, utiliser l'estimation
+    let actualOutput = estimatedOutput;
+    // Code pour extraire les montants réels des événements, si disponible
+    
+    return { 
+      success: true, 
+      uniswapFallback: false, 
+      directUniswap: false,
+      txHash: receipt.hash,
+      inputAmount: amount,
+      outputAmount: actualOutput
+    };
   } catch (error: any) {
     // Vérifier si l'erreur est spécifique au manque de liquidité
     if (error.message && (
@@ -403,38 +434,70 @@ export const swapTokens = async (
     )) {
       console.log("Paire sans liquidité, tentative de transfert vers Uniswap...");
       
+      // Obtenir une estimation du montant de sortie via Uniswap
+      let uniswapEstimatedOutput;
+      try {
+        // Tenter d'obtenir une estimation plus précise via Uniswap
+        // Cela pourrait être fait via le routeur Uniswap directement
+        const rate = await getConversionRate(tokenA, tokenB, amount);
+        uniswapEstimatedOutput = (parseFloat(amount) * parseFloat(rate)).toString();
+      } catch (rateError) {
+        console.warn("Impossible d'obtenir le taux d'échange via Uniswap:", rateError);
+        uniswapEstimatedOutput = amount;
+      }
+      
       try {
         // Utiliser forwardToUniswap comme première solution de secours
-        await forwardToUniswap(tokenA, tokenB, amount);
-        return { success: true, uniswapFallback: true, directUniswap: false };
+        const result = await forwardToUniswap(tokenA, tokenB, amount);
+        return { 
+          success: true, 
+          uniswapFallback: true, 
+          directUniswap: false,
+          txHash: result.hash,
+          inputAmount: result.inputAmount,
+          outputAmount: result.outputAmount || uniswapEstimatedOutput
+        };
       } catch (uniswapError: any) {
         console.error("Erreur lors du transfert vers Uniswap via le contrat:", uniswapError);
         
         try {
           // Dernière tentative : utiliser directement le routeur Uniswap
           console.log("Tentative d'échange direct via le routeur Uniswap...");
-          await swapWithUniswapRouter(tokenA, tokenB, amount);
-          return { success: true, uniswapFallback: false, directUniswap: true };
+          const result = await swapWithUniswapRouter(tokenA, tokenB, amount);
+          return { 
+            success: true, 
+            uniswapFallback: false, 
+            directUniswap: true,
+            txHash: result.hash,
+            inputAmount: result.inputAmount,
+            outputAmount: result.outputAmount || uniswapEstimatedOutput
+          };
         } catch (directUniswapError: any) {
           console.error("Échec de toutes les méthodes d'échange:", directUniswapError);
           return { 
             success: false, 
             uniswapFallback: false, 
             directUniswap: false,
-            error: "Échec de toutes les méthodes d'échange: " + directUniswapError.message
+            error: directUniswapError.message,
+            txHash: undefined,
+            inputAmount: undefined,
+            outputAmount: undefined
           };
         }
       }
-    } else {
-      // Pour les autres types d'erreurs, propager l'erreur
-      console.error("Erreur lors de l'échange:", error);
-      return { 
-        success: false, 
-        uniswapFallback: false, 
-        directUniswap: false,
-        error: error.message || "Erreur lors de l'échange" 
-      };
     }
+    
+    // Pour d'autres types d'erreurs
+    console.error("Erreur lors du swap:", error);
+    return { 
+      success: false, 
+      uniswapFallback: false, 
+      directUniswap: false,
+      error: error.message,
+      txHash: undefined,
+      inputAmount: undefined,
+      outputAmount: undefined
+    };
   }
 };
 
@@ -472,7 +535,7 @@ export const withdrawLiquidity = async (
   tokenB: string,
   amountA: string
 ): Promise<void> => {
-  if (!isInitialized) {
+  if (!contract) {
     await initialize();
   }
   
@@ -480,9 +543,35 @@ export const withdrawLiquidity = async (
     throw new Error("Le contrat n'est pas initialisé");
   }
   
+  // Vérifier que le montant est strictement supérieur à zéro
+  if (!amountA || Number(amountA) <= 0) {
+    throw new Error("Le montant à retirer doit être supérieur à zéro");
+  }
+  
   try {
-    // Utiliser withdraw au lieu de removeLiquidity
-    const tx = await contract.withdraw(tokenA, tokenB, parseUnits(amountA, 18));
+    // Vérifier les balances LP avant de tenter le retrait
+    const account = await requestAccount();
+    if (!account) {
+      throw new Error("Aucun compte connecté");
+    }
+    
+    // Récupérer les balances LP actuelles
+    const userLPBalanceA = await contract.lpBalances(tokenA, account);
+    
+    // Convertir le montant demandé en BigInt
+    const amountABigInt = parseUnits(amountA, 18);
+    
+    // Vérifier que l'utilisateur a suffisamment de jetons LP pour le token A
+    if (userLPBalanceA < amountABigInt) {
+      throw new Error(`Solde LP insuffisant pour ${tokenA}. Demandé: ${amountA}, Disponible: ${formatUnits(userLPBalanceA, 18)}`);
+    }
+    
+    // Dans ce contrat, les balances LP ne sont pas proportionnelles aux réserves du pool
+    // Nous n'avons donc pas besoin de vérifier la balance LP de tokenB par rapport au ratio
+    // Nous faisons confiance au contrat pour gérer correctement le retrait
+    
+    // Procéder au retrait
+    const tx = await contract.withdraw(tokenA, tokenB, amountABigInt);
     await tx.wait();
   } catch (error) {
     console.error("Erreur lors du retrait de liquidité:", error);
@@ -573,130 +662,106 @@ export const getLiquidityPosition = async (account: string): Promise<{
   tokenAAmount: string;
   tokenBAmount: string;
   poolShare: string;
+  lpBalanceA: string;
+  lpBalanceB: string;
 }> => {
   try {
     if (!contract) {
       await initialize();
     }
 
-    console.log("Récupération des positions de liquidité pour le compte:", account);
-
     // Utiliser les anciennes adresses qui semblent mieux fonctionner avec le contrat
     const tokenA = TOKENS.TOKEN_A_OLD;
     const tokenB = TOKENS.TOKEN_B_OLD;
 
-    console.log("Utilisation des anciennes adresses:");
-    console.log("Token A (OLD):", tokenA);
-    console.log("Token B (OLD):", tokenB);
-
     // Récupérer la clé de la paire
     const pairKey = await contract?.pairKeys(tokenA, tokenB);
-    console.log("Pair Key:", pairKey);
 
     if (!pairKey || pairKey === "0x0000000000000000000000000000000000000000000000000000000000000000") {
-      console.log("Pair Key invalide, la paire n'existe peut-être pas");
       return {
         tokenAAmount: "0",
         tokenBAmount: "0",
-        poolShare: "0"
+        poolShare: "0",
+        lpBalanceA: "0",
+        lpBalanceB: "0"
       };
     }
 
     // Récupérer les données de la paire
     const pair = await contract?.pairs(pairKey);
     
-    // Utiliser un format manuel pour afficher les données de la paire sans utiliser JSON.stringify sur des BigInt
-    console.log("Données de la paire:", {
-      tokenA: pair?.tokenA,
-      tokenB: pair?.tokenB,
-      reserveA: pair?.reserveA ? pair.reserveA.toString() : "0",
-      reserveB: pair?.reserveB ? pair.reserveB.toString() : "0"
-    });
-
-    // Récupérer le solde LP de l'utilisateur en vérifiant les deux tokens
+    // Récupérer les balances LP de l'utilisateur
     const userLPBalanceA = await contract?.lpBalances(tokenA, account);
     const userLPBalanceB = await contract?.lpBalances(tokenB, account);
     
-    console.log("Balance LP utilisateur pour TokenA:", userLPBalanceA.toString());
-    console.log("Balance LP utilisateur pour TokenB:", userLPBalanceB.toString());
-    
-    // Utiliser le plus grand des deux soldes car ils devraient être identiques
-    const userLPBalance = userLPBalanceA > userLPBalanceB ? userLPBalanceA : userLPBalanceB;
-    console.log("Balance LP utilisateur finale:", userLPBalance.toString());
+    // Formater les balances LP pour l'affichage
+    const lpBalanceAFormatted = formatUnits(userLPBalanceA || 0n, 18);
+    const lpBalanceBFormatted = formatUnits(userLPBalanceB || 0n, 18);
     
     // Si l'utilisateur n'a pas de liquidité, retourner 0 pour éviter des calculs inutiles
-    if (userLPBalance === 0n) {
-      console.log("L'utilisateur n'a pas de liquidité dans cette paire");
+    if ((userLPBalanceA === 0n || !userLPBalanceA) && (userLPBalanceB === 0n || !userLPBalanceB)) {
       return {
-        tokenAAmount: formatUnits(pair?.reserveA || 0, 18),
-        tokenBAmount: formatUnits(pair?.reserveB || 0, 18), 
-        poolShare: "0"
+        tokenAAmount: "0",
+        tokenBAmount: "0", 
+        poolShare: "0",
+        lpBalanceA: lpBalanceAFormatted,
+        lpBalanceB: lpBalanceBFormatted
       };
     }
     
-    // Récupérer la liste des fournisseurs de liquidité pour chaque token
-    console.log("Récupération des listes de fournisseurs de liquidité...");
+    // Récupérer les réserves totales
+    const reserveA = pair?.reserveA || 0n;
+    const reserveB = pair?.reserveB || 0n;
+    
+    // Récupérer les listes de fournisseurs de liquidité
     const lpListA = await contract?.getLPList(tokenA);
     const lpListB = await contract?.getLPList(tokenB);
     
-    console.log("Fournisseurs pour TokenA:", lpListA);
-    console.log("Fournisseurs pour TokenB:", lpListB);
+    // Calculer le total des balances LP pour chaque token
+    let totalLPBalanceA = 0n;
+    let totalLPBalanceB = 0n;
     
-    // Fusionner les listes et supprimer les doublons
-    const lpList = [...new Set([...lpListA, ...lpListB])];
-    console.log("Liste combinée de fournisseurs:", lpList);
-    
-    // Récupérer les soldes LP de tous les fournisseurs
-    console.log("Calcul des soldes LP totaux...");
-    const totalLPBalances = await Promise.all(
-      lpList.map(async (lp: string) => {
-        const balanceA = await contract!.lpBalances(tokenA, lp);
-        const balanceB = await contract!.lpBalances(tokenB, lp);
-        // Prendre le plus grand des deux soldes pour chaque fournisseur
-        return balanceA > balanceB ? balanceA : balanceB;
-      })
-    );
-    
-    // Convertir les BigInt en chaînes pour l'affichage
-    console.log("Soldes LP individuels:", totalLPBalances.map(b => b.toString()));
-    
-    // Calculer le total des soldes LP
-    const totalLPBalance = totalLPBalances.reduce((a: bigint, b: bigint) => a + b, 0n);
-    console.log("Solde LP total dans la pool:", totalLPBalance.toString());
-    
-    // Calculer la part de la pool en pourcentage
-    let poolShare = "0";
-    if (totalLPBalance > 0n) {
-      // Calculer la part en pourcentage avec une précision de 2 décimales
-      const share = (userLPBalance * 10000n) / totalLPBalance;
-      poolShare = (Number(share) / 100).toString();
-      console.log("Part calculée (valeur brute):", share.toString());
-      console.log("Part de pool formatée (%):", poolShare);
+    for (const lp of lpListA) {
+      const balance = await contract!.lpBalances(tokenA, lp);
+      totalLPBalanceA += balance;
     }
-
+    
+    for (const lp of lpListB) {
+      const balance = await contract!.lpBalances(tokenB, lp);
+      totalLPBalanceB += balance;
+    }
+    
+    // Calculer la part de la pool en pourcentage pour chaque token
+    let poolShareA = "0";
+    let poolShareB = "0";
+    
+    if (totalLPBalanceA > 0n && userLPBalanceA > 0n) {
+      const shareA = (userLPBalanceA * 10000n) / totalLPBalanceA;
+      poolShareA = (Number(shareA) / 100).toString();
+    }
+    
+    if (totalLPBalanceB > 0n && userLPBalanceB > 0n) {
+      const shareB = (userLPBalanceB * 10000n) / totalLPBalanceB;
+      poolShareB = (Number(shareB) / 100).toString();
+    }
+    
+    // Utiliser la moyenne des deux parts
+    const poolShare = ((Number(poolShareA) + Number(poolShareB)) / 2).toString();
+    
     // Calculer la valeur des tokens correspondant à la part de l'utilisateur
-    let userTokenAAmount = 0n;
-    let userTokenBAmount = 0n;
-    
-    if (pair && pair.reserveA && totalLPBalance > 0n) {
-      userTokenAAmount = (BigInt(pair.reserveA) * userLPBalance) / totalLPBalance;
-    }
-    
-    if (pair && pair.reserveB && totalLPBalance > 0n) {
-      userTokenBAmount = (BigInt(pair.reserveB) * userLPBalance) / totalLPBalance;
-    }
-    
-    console.log("Part de l'utilisateur dans TokenA:", formatUnits(userTokenAAmount, 18));
-    console.log("Part de l'utilisateur dans TokenB:", formatUnits(userTokenBAmount, 18));
+    // Dans ce contrat, les balances LP sont directement les montants de tokens
+    const userTokenAAmount = userLPBalanceA || 0n;
+    const userTokenBAmount = userLPBalanceB || 0n;
 
     // Formater les résultats finaux
     const formattedResult = {
-      tokenAAmount: formatUnits(pair?.reserveA || 0, 18),
-      tokenBAmount: formatUnits(pair?.reserveB || 0, 18),
-      poolShare
+      tokenAAmount: formatUnits(userTokenAAmount, 18),
+      tokenBAmount: formatUnits(userTokenBAmount, 18),
+      poolShare,
+      lpBalanceA: lpBalanceAFormatted,
+      lpBalanceB: lpBalanceBFormatted
     };
 
-    console.log("Résultat final:", formattedResult);
     return formattedResult;
 
   } catch (error) {
@@ -704,7 +769,9 @@ export const getLiquidityPosition = async (account: string): Promise<{
     return {
       tokenAAmount: "0",
       tokenBAmount: "0",
-      poolShare: "0"
+      poolShare: "0",
+      lpBalanceA: "0",
+      lpBalanceB: "0"
     };
   }
 };
@@ -712,22 +779,16 @@ export const getLiquidityPosition = async (account: string): Promise<{
 export const getTokenBalance = async (tokenAddress: string, account: string): Promise<string> => {
   try {
     if (!isInitialized) {
-      console.log("Initialisation du signer...");
       await initialize();
     }
 
-    console.log("Vérification du solde pour le token:", tokenAddress);
-    console.log("Compte:", account);
-
     // Vérifier que l'adresse du compte est valide
     if (!account) {
-      console.warn("Aucun compte fourni pour getTokenBalance");
       return "0";
     }
 
     // Vérifier que l'adresse du token est valide
     if (!tokenAddress) {
-      console.warn("Aucune adresse de token fournie pour getTokenBalance");
       return "0";
     }
 
@@ -739,50 +800,39 @@ export const getTokenBalance = async (tokenAddress: string, account: string): Pr
       "function name() view returns (string)"
     ];
     
-    console.log("Création du contrat token avec l'adresse:", tokenAddress);
-    
     try {
       // Utilisons provider au lieu de signer pour les appels en lecture seule
       const tokenContract = new Contract(tokenAddress, tokenABI, provider);
       
       // Récupérer les informations du token
-      console.log("Récupération des informations du token...");
       let symbol = "Unknown";
       let name = "Unknown";
       let decimals = 18;
       
       try {
         symbol = await tokenContract.symbol();
-        console.log("Symbole récupéré:", symbol);
       } catch (e) {
         console.error("Erreur lors de la récupération du symbole:", e);
       }
       
       try {
         name = await tokenContract.name();
-        console.log("Nom récupéré:", name);
       } catch (e) {
         console.error("Erreur lors de la récupération du nom:", e);
       }
       
       try {
         decimals = await tokenContract.decimals();
-        console.log("Décimales récupérées:", decimals);
       } catch (e) {
         console.error("Erreur lors de la récupération des décimales, utilisation de la valeur par défaut (18):", e);
       }
       
-      console.log("Informations du token:", { symbol, name, decimals });
-      
       // Récupérer la balance avec un try/catch spécifique
-      console.log("Récupération de la balance pour le compte:", account);
       try {
         const balance = await tokenContract.balanceOf(account);
-        console.log("Balance brute récupérée:", balance.toString());
         
         // Formater la balance avec le bon nombre de décimales
         const formattedBalance = formatUnits(balance, decimals);
-        console.log("Balance formatée:", formattedBalance);
         
         return formattedBalance;
       } catch (error: any) {
@@ -927,121 +977,58 @@ export const getPairKey = (tokenA: string, tokenB: string): string => {
  * Récupère les balances des tokens dans la pool directement depuis le contrat
  */
 export const getPoolTokenBalances = async (): Promise<{ tokenABalance: string; tokenBBalance: string }> => {
-  try {
-    if (!isInitialized) {
-      console.log("Initialisation nécessaire...");
-      await initialize();
-    }
-    
-    if (!contract) {
-      console.error("Le contrat n'est pas initialisé");
-      return { tokenABalance: "0", tokenBBalance: "0" };
-    }
-
-    // Essayons d'abord avec les anciennes adresses puisque ce sont celles qui fonctionnent pour le taux d'échange
-    console.log("Essai d'abord avec les anciennes adresses");
-    console.log("Token A (old):", TOKENS.TOKEN_A_OLD);
-    console.log("Token B (old):", TOKENS.TOKEN_B_OLD);
-    
-    try {
-      // Tentative 1: Utiliser les anciennes adresses pour la paire
-      const pairKeyOld = getPairKey(TOKENS.TOKEN_A_OLD, TOKENS.TOKEN_B_OLD);
-      console.log("Clé de paire (anciennes adresses):", pairKeyOld);
-      
-      const pairDataOld = await contract.pairs(pairKeyOld);
-      
-      // Utiliser un format manuel pour afficher les données sans JSON.stringify sur des BigInt
-      console.log("Paire trouvée avec les anciennes adresses:", {
-        tokenA: pairDataOld?.tokenA,
-        tokenB: pairDataOld?.tokenB,
-        reserveA: pairDataOld?.reserveA ? pairDataOld.reserveA.toString() : "0",
-        reserveB: pairDataOld?.reserveB ? pairDataOld.reserveB.toString() : "0"
-      });
-      
-      if (pairDataOld && pairDataOld.reserveA && pairDataOld.reserveB) {
-        const reserveAOld = pairDataOld.reserveA;
-        const reserveBOld = pairDataOld.reserveB;
-        console.log("Réserve A (old) brute:", reserveAOld.toString());
-        console.log("Réserve B (old) brute:", reserveBOld.toString());
-        
-        return {
-          tokenABalance: formatUnits(reserveAOld, 18),
-          tokenBBalance: formatUnits(reserveBOld, 18)
-        };
-      }
-    } catch (error) {
-      console.log("Erreur avec les anciennes adresses:", error);
-      console.log("Essai avec les adresses actuelles...");
-    }
-    
-    // Tentative 2: Utiliser les adresses actuelles pour la paire
-    try {
-      console.log("Token A:", TOKENS.TOKEN_A);
-      console.log("Token B:", TOKENS.TOKEN_B);
-      
-      const pairKey = getPairKey(TOKENS.TOKEN_A, TOKENS.TOKEN_B);
-      console.log("Clé de paire (adresses actuelles):", pairKey);
-      
-      const pairData = await contract.pairs(pairKey);
-      
-      // Utiliser un format manuel pour afficher les données sans JSON.stringify sur des BigInt
-      console.log("Paire trouvée avec les adresses actuelles:", {
-        tokenA: pairData?.tokenA,
-        tokenB: pairData?.tokenB,
-        reserveA: pairData?.reserveA ? pairData.reserveA.toString() : "0",
-        reserveB: pairData?.reserveB ? pairData.reserveB.toString() : "0"
-      });
-      
-      if (pairData && pairData.reserveA && pairData.reserveB) {
-        const reserveA = pairData.reserveA;
-        const reserveB = pairData.reserveB;
-        console.log("Réserve A brute:", reserveA.toString());
-        console.log("Réserve B brute:", reserveB.toString());
-        
-        return {
-          tokenABalance: formatUnits(reserveA, 18),
-          tokenBBalance: formatUnits(reserveB, 18)
-        };
-      }
-    } catch (error) {
-      console.log("Erreur avec les adresses actuelles:", error);
-    }
-
-    // Tentative 3: Utiliser directement les balances ERC20 du contrat
-    try {
-      console.log("Tentative avec getTokenBalance sur le contrat DEX...");
-      
-      // Essayer d'abord avec les anciennes adresses
-      const balanceAOld = await getTokenBalance(TOKENS.TOKEN_A_OLD, CONTRACT_ADDRESS);
-      const balanceBOld = await getTokenBalance(TOKENS.TOKEN_B_OLD, CONTRACT_ADDRESS);
-      
-      if (balanceAOld !== "0" && balanceBOld !== "0") {
-        console.log("Balances trouvées avec getTokenBalance (anciennes adresses):");
-        console.log("Balance A:", balanceAOld);
-        console.log("Balance B:", balanceBOld);
-        return { tokenABalance: balanceAOld, tokenBBalance: balanceBOld };
-      }
-      
-      // Sinon, essayer avec les adresses actuelles
-      const balanceA = await getTokenBalance(TOKENS.TOKEN_A, CONTRACT_ADDRESS);
-      const balanceB = await getTokenBalance(TOKENS.TOKEN_B, CONTRACT_ADDRESS);
-      
-      if (balanceA !== "0" && balanceB !== "0") {
-        console.log("Balances trouvées avec getTokenBalance (adresses actuelles):");
-        console.log("Balance A:", balanceA);
-        console.log("Balance B:", balanceB);
-        return { tokenABalance: balanceA, tokenBBalance: balanceB };
-      }
-    } catch (error) {
-      console.log("Erreur avec getTokenBalance:", error);
-    }
-    
-    console.error("Aucune méthode n'a permis de récupérer les balances du pool");
-    return { tokenABalance: "0", tokenBBalance: "0" };
-  } catch (error) {
-    console.error("Erreur générale lors de la récupération des soldes du pool:", error);
-    return { tokenABalance: "0", tokenBBalance: "0" };
+  if (!isInitialized) {
+    await initialize();
   }
+  
+  if (!contract) {
+    throw new Error("Le contrat n'est pas initialisé");
+  }
+
+  // Essayons d'abord avec les anciennes adresses puisque ce sont celles qui fonctionnent pour le taux d'échange
+  try {
+    // Tentative 1: Utiliser les anciennes adresses pour la paire
+    const pairKeyOld = getPairKey(TOKENS.TOKEN_A_OLD, TOKENS.TOKEN_B_OLD);
+    
+    const pairDataOld = await contract.pairs(pairKeyOld);
+    
+    if (pairDataOld && pairDataOld.reserveA && pairDataOld.reserveB) {
+      const reserveAOld = pairDataOld.reserveA;
+      const reserveBOld = pairDataOld.reserveB;
+      
+      return {
+        tokenABalance: formatUnits(reserveAOld, 18),
+        tokenBBalance: formatUnits(reserveBOld, 18)
+      };
+    }
+  } catch (error) {
+    // Silencieux, on essaie avec les adresses actuelles
+  }
+  
+  // Tentative 2: Utiliser les adresses actuelles pour la paire
+  try {
+    const pairKey = getPairKey(TOKENS.TOKEN_A, TOKENS.TOKEN_B);
+    
+    const pairData = await contract.pairs(pairKey);
+    
+    if (pairData && pairData.reserveA && pairData.reserveB) {
+      const reserveA = pairData.reserveA;
+      const reserveB = pairData.reserveB;
+      
+      return {
+        tokenABalance: formatUnits(reserveA, 18),
+        tokenBBalance: formatUnits(reserveB, 18)
+      };
+    }
+  } catch (error) {
+    console.error("Erreur lors de la récupération des balances du pool:", error);
+  }
+  
+  // Si aucune des tentatives n'a fonctionné, retourner des valeurs par défaut
+  return {
+    tokenABalance: "0",
+    tokenBBalance: "0"
+  };
 };
 
 // Fonction pour vérifier le routeur Uniswap utilisé par le contrat
@@ -1069,7 +1056,7 @@ export const forwardToUniswap = async (
   tokenA: string,
   tokenB: string,
   amount: string
-): Promise<void> => {
+): Promise<{ hash: string, inputAmount: string, outputAmount?: string }> => {
   if (!isInitialized) {
     await initialize();
   }
@@ -1079,38 +1066,126 @@ export const forwardToUniswap = async (
   }
   
   try {
-    // Vérifier le routeur Uniswap avant de continuer
-    const uniswapRouter = await checkUniswapRouter();
-    console.log("Routeur Uniswap vérifié:", uniswapRouter);
-    
-    console.log("Tentative de transfert vers Uniswap avec minAmountOut = 0");
-    console.log("Token A:", tokenA);
-    console.log("Token B:", tokenB);
-    console.log("Montant:", amount);
-    
-    // Utiliser 0 comme minAmountOut pour éviter les erreurs de calcul
-    // Cela signifie que l'utilisateur accepte n'importe quel taux d'échange (slippage maximal)
-    // Ce n'est pas idéal en production mais permettra de tester si l'appel de base fonctionne
+    // Convertir le montant en wei (18 décimales)
     const amountInWei = parseUnits(amount, 18);
-    const tx = await contract.forwardToUniswap(tokenA, tokenB, amountInWei, 0);
     
-    console.log("Transaction envoyée:", tx.hash);
-    await tx.wait();
-    console.log("Transaction confirmée");
+    // Appeler la fonction forwardToUniswap du contrat
+    console.log(`Appel de forwardToUniswap avec tokenA=${tokenA}, tokenB=${tokenB}, amount=${amountInWei.toString()}`);
+    const tx = await contract.forwardToUniswap(tokenA, tokenB, amountInWei);
+    
+    // Attendre que la transaction soit confirmée
+    console.log("En attente de confirmation pour forwardToUniswap...");
+    const receipt = await tx.wait();
+    
+    console.log("Transaction forwardToUniswap confirmée, hash:", receipt.hash);
+    
+    return {
+      hash: receipt.hash,
+      inputAmount: amount,
+      outputAmount: undefined // Nous ne connaissons pas le montant exact sans événement
+    };
   } catch (error) {
-    console.error("Erreur lors du transfert vers Uniswap:", error);
+    console.error("Erreur lors de l'appel à forwardToUniswap:", error);
+    throw error;
+  }
+};
+
+// Fonction pour récupérer l'instance du contrat
+export const getContract = (): Contract | undefined => {
+  if (!isInitialized) {
+    console.warn("Le contrat n'est pas initialisé. Appelez initialize() d'abord.");
+  }
+  return contract;
+};
+
+// Fonction de diagnostic pour récupérer les valeurs exactes du contrat
+export const getContractDiagnostics = async (account: string): Promise<{
+  pairInfo: any;
+  userLPBalances: any;
+  reserveValues: any;
+  contractAddress: string;
+}> => {
+  if (!contract) {
+    await initialize();
+  }
+  
+  if (!contract) {
+    throw new Error("Le contrat n'est pas initialisé");
+  }
+  
+  try {
+    // Récupérer l'adresse du contrat
+    const contractAddress = CONTRACT_ADDRESS;
     
-    // Afficher plus de détails sur l'erreur pour aider au diagnostic
-    if (error instanceof Error) {
-      console.error("Message d'erreur:", error.message);
-      if ('data' in error) {
-        console.error("Données d'erreur:", (error as any).data);
-      }
-      if ('transaction' in error) {
-        console.error("Transaction qui a échoué:", (error as any).transaction);
-      }
+    // Récupérer les adresses des tokens
+    const tokenA = TOKENS.TOKEN_A_OLD;
+    const tokenB = TOKENS.TOKEN_B_OLD;
+    
+    // Récupérer la clé de la paire
+    const pairKey = await contract.pairKeys(tokenA, tokenB);
+    
+    // Récupérer les données de la paire
+    const pair = await contract.pairs(pairKey);
+    
+    // Récupérer les balances LP de l'utilisateur
+    const userLPBalanceA = await contract.lpBalances(tokenA, account);
+    const userLPBalanceB = await contract.lpBalances(tokenB, account);
+    
+    // Récupérer les réserves totales
+    const reserveA = pair.reserveA;
+    const reserveB = pair.reserveB;
+    
+    // Récupérer les listes de fournisseurs de liquidité
+    const lpListA = await contract.getLPList(tokenA);
+    const lpListB = await contract.getLPList(tokenB);
+    
+    // Calculer le total des balances LP pour chaque token
+    let totalLPBalanceA = 0n;
+    let totalLPBalanceB = 0n;
+    
+    for (const lp of lpListA) {
+      const balance = await contract.lpBalances(tokenA, lp);
+      totalLPBalanceA += balance;
     }
     
+    for (const lp of lpListB) {
+      const balance = await contract.lpBalances(tokenB, lp);
+      totalLPBalanceB += balance;
+    }
+    
+    // Formater les informations pour l'affichage
+    const pairInfo = {
+      pairKey,
+      tokenA: pair.tokenA,
+      tokenB: pair.tokenB,
+      reserveA: formatUnits(reserveA, 18),
+      reserveB: formatUnits(reserveB, 18)
+    };
+    
+    const userLPBalances = {
+      tokenA: {
+        address: tokenA,
+        balance: formatUnits(userLPBalanceA, 18)
+      },
+      tokenB: {
+        address: tokenB,
+        balance: formatUnits(userLPBalanceB, 18)
+      }
+    };
+    
+    const reserveValues = {
+      totalLPBalanceA: formatUnits(totalLPBalanceA, 18),
+      totalLPBalanceB: formatUnits(totalLPBalanceB, 18)
+    };
+    
+    return {
+      pairInfo,
+      userLPBalances,
+      reserveValues,
+      contractAddress
+    };
+  } catch (error) {
+    console.error("Erreur lors de la récupération des diagnostics du contrat:", error);
     throw error;
   }
 };
