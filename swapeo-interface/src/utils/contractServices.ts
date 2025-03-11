@@ -325,7 +325,7 @@ export const approveToken = async (
   tokenAddress: string, 
   amount: string, 
   spenderAddress: string = CONTRACT_ADDRESS
-): Promise<boolean> => {
+): Promise<{ success: boolean, txHash?: string }> => {
   try {
     if (!signer) await initialize();
     
@@ -367,17 +367,23 @@ export const approveToken = async (
     // Effectuer l'approbation
     const tx = await tokenContract.approve(spenderAddress, amountInWei);
     
+    // Stocker le hash de la transaction avant d'attendre la confirmation
+    const txHash = tx.hash;
+    
     const receipt = await tx.wait();
 
     // Vérifier la nouvelle allowance
     const newAllowance = await tokenContract.allowance(await signer.getAddress(), spenderAddress);
     
-    // Vérifier que l'approbation a bien été prise en compte
-    return newAllowance >= amountInWei;
+    // Vérifier que l'approbation a bien été prise en compte et retourner le hash
+    return {
+      success: newAllowance >= amountInWei,
+      txHash: txHash
+    };
 
   } catch (error) {
     console.error("Error in approveToken:", error);
-    return false;
+    return { success: false };
   }
 };
 

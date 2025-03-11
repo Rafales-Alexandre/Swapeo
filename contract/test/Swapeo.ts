@@ -20,7 +20,6 @@ async function deploySwapeoDEXFixture() {
   const mockRouter = await MockUniswapRouter.deploy();
   await mockRouter.waitForDeployment();
 
-  // Approvisionner le mock avec tokenB et configurer les tokens
   const amount = ethers.parseUnits("10000", 18);
   await tokenB.transfer(mockRouter.target, amount);
   await mockRouter.setTokens(tokenA.target, tokenB.target);
@@ -117,7 +116,7 @@ describe("SwapeoDEX", function () {
       );
       const amountA = ethers.parseUnits("1000", 18);
       const amountB = ethers.parseUnits("2000", 18);
-      const withdrawAmountA = amountA / 2n; // Utilisation de BigInt
+      const withdrawAmountA = amountA / 2n;
 
       await swapeoDEX
         .connect(lp1)
@@ -221,7 +220,7 @@ describe("SwapeoDEX", function () {
         deploySwapeoDEXFixture
       );
       const swapAmount = ethers.parseUnits("100", 18);
-      const fee = (swapAmount * 5n) / 1000n; // 0,5%
+      const fee = (swapAmount * 5n) / 1000n;
 
       const initialOwnerBalance = await tokenA.balanceOf(owner.address);
       await expect(
@@ -238,7 +237,7 @@ describe("SwapeoDEX", function () {
       expect(finalOwnerBalance - initialOwnerBalance).to.equal(fee);
       expect(await tokenB.balanceOf(user.address)).to.equal(
         swapAmount - fee - 1n
-      ); // Mock retourne amountIn - 1
+      );
     });
 
     it("Should revert if tokens are invalid", async function () {
@@ -255,7 +254,6 @@ describe("SwapeoDEX", function () {
     it("Should distribute fees proportionally to LPs", async function () {
       const { swapeoDEX, tokenA, tokenB, lp1, lp2, user } = await loadFixture(deploySwapeoDEXFixture);
       
-      // LP1 fournit 1000 tokenA, LP2 fournit 500 tokenA (ratio 2:1)
       const amountLP1 = ethers.parseUnits("1000", 18);
       const amountLP2 = ethers.parseUnits("500", 18);
       const amountB = ethers.parseUnits("2000", 18);
@@ -263,18 +261,14 @@ describe("SwapeoDEX", function () {
       await swapeoDEX.connect(lp1).deposit(tokenA.target, tokenB.target, amountLP1, amountB);
       await swapeoDEX.connect(lp2).deposit(tokenA.target, tokenB.target, amountLP2, amountB / 2n);
       
-      // User effectue un swap qui génère des frais
       const swapAmount = ethers.parseUnits("300", 18);
       await swapeoDEX.connect(user).swap(tokenA.target, tokenB.target, swapAmount);
       
-      // Les frais collectés devraient être 1% de swapAmount
       const expectedFees = swapAmount / 100n;
       expect(await swapeoDEX.feesCollected(tokenA.target)).to.equal(expectedFees);
       
-      // Distribution des frais
       await swapeoDEX.distributeFees(tokenA.target);
       
-      // Vérification de la distribution proportionnelle (2/3 pour LP1, 1/3 pour LP2)
       const lp1Share = (expectedFees * 2n) / 3n;
       const lp2Share = expectedFees / 3n;
       
@@ -304,13 +298,11 @@ describe("SwapeoDEX", function () {
       
       const initialAmount = ethers.parseUnits("1000", 18);
       
-      // Capture des états initiaux
       await swapeoDEX.connect(lp1).deposit(tokenA.target, tokenB.target, initialAmount, initialAmount);
       const pairKey = await swapeoDEX.pairKeys(tokenA.target, tokenB.target);
       const initialPair = await swapeoDEX.pairs(pairKey);
       const initialReserveProduct = initialPair.reserveA * initialPair.reserveB;
       
-      // Série d'opérations
       const swapAmount = ethers.parseUnits("50", 18);
       await swapeoDEX.connect(user).swap(tokenA.target, tokenB.target, swapAmount);
       await swapeoDEX.connect(lp2).deposit(tokenA.target, tokenB.target, initialAmount, initialAmount);
@@ -319,20 +311,16 @@ describe("SwapeoDEX", function () {
       const secondSwapAmount = ethers.parseUnits("25", 18);
       await swapeoDEX.connect(user).swap(tokenB.target, tokenA.target, secondSwapAmount);
       
-      // Vérification des invariants
       const finalPair = await swapeoDEX.pairs(pairKey);
       
-      // 1. Les réserves ne doivent jamais être nulles
       expect(finalPair.reserveA).to.be.gt(0);
       expect(finalPair.reserveB).to.be.gt(0);
       
-      // 2. La somme des balances LP doit être égale aux réserves (à la marge des frais près)
       const totalLPBalanceA = await swapeoDEX.lpBalances(tokenA.target, lp1.address) + 
                              await swapeoDEX.lpBalances(tokenA.target, lp2.address);
       const totalLPBalanceB = await swapeoDEX.lpBalances(tokenB.target, lp1.address) + 
                              await swapeoDEX.lpBalances(tokenB.target, lp2.address);
       
-      // Tolérance de 2% pour tenir compte des frais cumulés
       const tolerancePercent = 2n;
       const toleranceA = (finalPair.reserveA * tolerancePercent) / 100n;
       const toleranceB = (finalPair.reserveB * tolerancePercent) / 100n;
@@ -340,11 +328,9 @@ describe("SwapeoDEX", function () {
       expect(totalLPBalanceA).to.be.closeTo(finalPair.reserveA, toleranceA);
       expect(totalLPBalanceB).to.be.closeTo(finalPair.reserveB, toleranceB);
       
-      // 3. Le produit des réserves ne doit pas diminuer (il peut augmenter à cause des frais)
       const finalReserveProduct = finalPair.reserveA * finalPair.reserveB;
       expect(finalReserveProduct).to.be.gte(initialReserveProduct);
       
-      // 4. Vérification de la cohérence des parts LP
       const lp1ShareA = await swapeoDEX.lpBalances(tokenA.target, lp1.address);
       const lp2ShareA = await swapeoDEX.lpBalances(tokenA.target, lp2.address);
       expect(lp1ShareA).to.be.gt(0);
@@ -354,20 +340,16 @@ describe("SwapeoDEX", function () {
     it("Should handle extreme price differences", async function () {
       const { swapeoDEX, tokenA, tokenB, lp1, user } = await loadFixture(deploySwapeoDEXFixture);
       
-      // Création d'une paire avec un grand écart de prix (1:1000)
       const amountA = ethers.parseUnits("1000", 18);
       const amountB = ethers.parseUnits("1", 18);
       
       await swapeoDEX.connect(lp1).deposit(tokenA.target, tokenB.target, amountA, amountB);
       
-      // Test d'un petit swap
       const smallSwap = ethers.parseUnits("1", 18);
       const estimatedOut = await swapeoDEX.getAmountOut(tokenA.target, tokenB.target, smallSwap);
       
-      // Le montant estimé doit être cohérent avec le ratio
       expect(estimatedOut).to.be.gt(0);
       
-      // Exécution du swap
       await expect(
         swapeoDEX.connect(user).swap(tokenA.target, tokenB.target, smallSwap)
       ).to.not.be.reverted;
@@ -378,13 +360,11 @@ describe("SwapeoDEX", function () {
     it("Should prevent price manipulation through small deposits", async function () {
       const { swapeoDEX, tokenA, tokenB, lp1, user } = await loadFixture(deploySwapeoDEXFixture);
       
-      // Tentative de création d'une paire avec des montants très petits
       const tinyAmount = 1n;
       await expect(
         swapeoDEX.connect(lp1).deposit(tokenA.target, tokenB.target, tinyAmount, tinyAmount)
       ).to.not.be.reverted;
       
-      // Tentative de swap avec un montant significatif
       const largeAmount = ethers.parseUnits("1000", 18);
       await expect(
         swapeoDEX.connect(user).swap(tokenA.target, tokenB.target, largeAmount)
@@ -402,7 +382,6 @@ describe("SwapeoDEX", function () {
       const smallSwap = ethers.parseUnits("0.000000000000000001", 18);
       const estimatedOut = await swapeoDEX.getAmountOut(tokenA.target, tokenB.target, smallSwap);
       
-      // Même les très petits montants doivent donner un résultat cohérent
       expect(estimatedOut).to.be.gte(0);
     });
   });

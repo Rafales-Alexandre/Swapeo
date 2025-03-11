@@ -52,6 +52,8 @@ const LiquidityActions: React.FC<{ account: string }> = ({ account }) => {
   const [diagnosticData, setDiagnosticData] = useState<any>(null);
   const [showDiagnostics, setShowDiagnostics] = useState(false);
 
+  const [approvalTxHashes, setApprovalTxHashes] = useState<{[key: string]: string}>({});
+
   // Fonction pour mettre à jour la part de la pool
   const updatePoolShare = async () => {
     try {
@@ -356,8 +358,39 @@ const LiquidityActions: React.FC<{ account: string }> = ({ account }) => {
     setIsLoading(true);
     setProcessStep('approving');
     try {
-      await approveToken(token, amount);
-      toast.success('Token approuvé avec succès !');
+      const approvalResult = await approveToken(token, amount);
+      
+      if (approvalResult.success) {
+        // Si l'approbation a réussi et qu'un hash de transaction est disponible
+        if (approvalResult.txHash) {
+          // Stocker le hash de la transaction
+          setApprovalTxHashes(prev => ({
+            ...prev,
+            [token]: approvalResult.txHash as string
+          }));
+          
+          // Afficher une notification avec le lien vers la transaction
+          toast.success(
+            <div>
+              Token approuvé avec succès !
+              <br />
+              <a 
+                href={`https://sepolia.etherscan.io/tx/${approvalResult.txHash}`} 
+                target="_blank" 
+                rel="noopener noreferrer"
+                style={{ color: '#3498db', textDecoration: 'underline' }}
+              >
+                Voir la transaction
+              </a>
+            </div>,
+            { autoClose: 5000 }
+          );
+        } else {
+          toast.success('Token approuvé avec succès !');
+        }
+      } else {
+        toast.error("L'approbation a échoué.");
+      }
     } catch (error) {
       toast.error(`Échec de l'approbation : ${(error as Error).message}`);
     } finally {
@@ -398,8 +431,53 @@ const LiquidityActions: React.FC<{ account: string }> = ({ account }) => {
       toast.info('Approbation des tokens en cours...');
       
       // Approuver les deux tokens
-      await approveToken(selectedTokenA.address, amount1);
-      await approveToken(selectedTokenB.address, amount2);
+      const approvalResult1 = await approveToken(selectedTokenA.address, amount1);
+      if (approvalResult1.txHash) {
+        setApprovalTxHashes(prev => ({
+          ...prev,
+          [selectedTokenA.address]: approvalResult1.txHash as string
+        }));
+        
+        toast.info(
+          <div>
+            Approbation de {selectedTokenA.label} réussie !
+            <br />
+            <a 
+              href={`https://sepolia.etherscan.io/tx/${approvalResult1.txHash}`} 
+              target="_blank" 
+              rel="noopener noreferrer"
+              style={{ color: '#3498db', textDecoration: 'underline' }}
+            >
+              Voir la transaction
+            </a>
+          </div>,
+          { autoClose: 5000 }
+        );
+      }
+      
+      const approvalResult2 = await approveToken(selectedTokenB.address, amount2);
+      if (approvalResult2.txHash) {
+        setApprovalTxHashes(prev => ({
+          ...prev,
+          [selectedTokenB.address]: approvalResult2.txHash as string
+        }));
+        
+        toast.info(
+          <div>
+            Approbation de {selectedTokenB.label} réussie !
+            <br />
+            <a 
+              href={`https://sepolia.etherscan.io/tx/${approvalResult2.txHash}`} 
+              target="_blank" 
+              rel="noopener noreferrer"
+              style={{ color: '#3498db', textDecoration: 'underline' }}
+            >
+              Voir la transaction
+            </a>
+          </div>,
+          { autoClose: 5000 }
+        );
+      }
       
       setProcessStep('depositing');
       toast.info('Dépôt de liquidité en cours...');
@@ -885,6 +963,29 @@ const LiquidityActions: React.FC<{ account: string }> = ({ account }) => {
             <h4>Adresse du contrat</h4>
             <p>{diagnosticData.contractAddress}</p>
           </div>
+        </div>
+      )}
+
+      {/* Afficher les hash des transactions d'approbation si disponibles */}
+      {Object.keys(approvalTxHashes).length > 0 && processStep === 'depositing' && (
+        <div className="approval-info">
+          <p>Approbations réussies :</p>
+          {Object.entries(approvalTxHashes).map(([token, hash]) => {
+            const tokenLabel = TOKEN_OPTIONS.find(t => t.address === token)?.label || token.substring(0, 6) + '...' + token.substring(token.length - 4);
+            return (
+              <div key={token} className="approval-tx-item">
+                <span>{tokenLabel}: </span>
+                <a 
+                  href={`https://sepolia.etherscan.io/tx/${hash}`} 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="tx-hash-link"
+                >
+                  {hash.substring(0, 10)}...{hash.substring(hash.length - 8)}
+                </a>
+              </div>
+            );
+          })}
         </div>
       )}
     </div>

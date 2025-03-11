@@ -18,6 +18,7 @@ const TokenSwap: React.FC<{ account: string }> = ({ account }) => {
   const [isApproved, setIsApproved] = useState(false);
   const [exchangeRate, setExchangeRate] = useState('0');
   const [isSwapping, setIsSwapping] = useState(false);
+  const [approvalTxHash, setApprovalTxHash] = useState<string | null>(null);
   const [balances, setBalances] = useState({
     tokenA: '0',
     tokenB: '0'
@@ -207,13 +208,35 @@ const TokenSwap: React.FC<{ account: string }> = ({ account }) => {
     try {
       setIsLoading(true);
       setLoadingStep('approving');
+      setApprovalTxHash(null);
 
       // Vérifier l'approbation
       if (!isApproved) {
         const approvalResult = await approveToken(fromToken.address, fromAmount);
-        if (!approvalResult) {
+        if (!approvalResult.success) {
           throw new Error("L'approbation a échoué");
         }
+        
+        // Stocker et afficher le hash de la transaction d'approbation
+        if (approvalResult.txHash) {
+          setApprovalTxHash(approvalResult.txHash);
+          toast.info(
+            <div>
+              Approbation réussie!
+              <br />
+              <a 
+                href={`https://sepolia.etherscan.io/tx/${approvalResult.txHash}`} 
+                target="_blank" 
+                rel="noopener noreferrer"
+                style={{ color: '#3498db', textDecoration: 'underline' }}
+              >
+                Voir la transaction
+              </a>
+            </div>,
+            { autoClose: 5000 }
+          );
+        }
+        
         setIsApproved(true);
       }
 
@@ -364,6 +387,21 @@ const TokenSwap: React.FC<{ account: string }> = ({ account }) => {
           <div className="loading-message">
             {loadingStep === 'approving' ? 'Approbation de la transaction...' : 'Échange en cours...'}
           </div>
+        </div>
+      )}
+
+      {/* Afficher le hash de la transaction d'approbation si disponible */}
+      {approvalTxHash && loadingStep === 'swapping' && (
+        <div className="approval-info">
+          <p>Approbation réussie! Hash de la transaction: </p>
+          <a 
+            href={`https://sepolia.etherscan.io/tx/${approvalTxHash}`} 
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="tx-hash-link"
+          >
+            {approvalTxHash.substring(0, 10)}...{approvalTxHash.substring(approvalTxHash.length - 8)}
+          </a>
         </div>
       )}
     </div>
