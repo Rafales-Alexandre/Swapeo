@@ -128,6 +128,10 @@ contract SwapeoDEX is ReentrancyGuard, Ownable {
             pair.tokenB = tokenA < tokenB ? tokenB : tokenA;
             pairKeys[tokenA][tokenB] = pairKey;
             pairKeys[tokenB][tokenA] = pairKey;
+        } else {
+            uint256 reserveA = pair.tokenA == tokenA ? pair.reserveA : pair.reserveB;
+            uint256 reserveB = pair.tokenA == tokenA ? pair.reserveB : pair.reserveA;
+            require(amountA * reserveB == amountB * reserveA, "Proportions invalides");
         }
 
         IERC20(tokenA).transferFrom(msg.sender, address(this), amountA);
