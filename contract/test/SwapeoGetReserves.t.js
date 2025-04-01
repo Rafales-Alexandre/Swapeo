@@ -50,7 +50,6 @@ describe("SwapeoGetReservesTest", function () {
     it("test_getReserves_returnsCorrectTimestamp", async function () {
       const [, , timestampBefore] = await swapeo.getReserves(tokenA.target, tokenB.target);
     
-      // faire une transaction pour modifier les réserves
       await tokenA.transfer(addr1.address, ethers.parseEther("10"));
       await tokenA.connect(addr1).approve(swapeo.target, ethers.parseEther("10"));
       const amountIn = ethers.parseEther("1");

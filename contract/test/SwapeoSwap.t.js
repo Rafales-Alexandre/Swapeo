@@ -6,7 +6,6 @@ describe("SwapeoSwapTest", function () {
   let tokenA;
   let tokenB;
   let tokenC;
-  let owner;
   let addr1;
   let uniswapRouterAddress;
 

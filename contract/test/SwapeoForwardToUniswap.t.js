@@ -38,7 +38,6 @@ describe("SwapeoForwardToUniswapTest", function () {
     it("test_forwardToUniswap_executesWithCorrectFeeDeduction", async function () {
       const amountIn = ethers.parseEther("1");
       const expectedFee = amountIn * BigInt(5) / BigInt(1000);
-      const expectedNet = amountIn - expectedFee;
 
       const ownerBalanceBefore = await tokenA.balanceOf(owner.address);
 

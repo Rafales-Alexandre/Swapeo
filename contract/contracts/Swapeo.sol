@@ -189,9 +189,9 @@ function getAmountOut(uint256 amountIn, address inputToken, address outputToken)
     uint256 amountInWithFee = amountIn * (FEE_DENOMINATOR - swapFee);
     uint256 numerator = amountInWithFee * reserveOut;
     uint256 denominator = reserveIn * FEE_DENOMINATOR + amountInWithFee;
-    uint256 amountOut = numerator / denominator; // ✅ déclaration ici
+    uint256 amountOut = numerator / denominator;
 
-    require(amountOut <= reserveOut, "Insufficient liquidity"); // ✅ maintenant reconnu
+    require(amountOut <= reserveOut, "Insufficient liquidity");
 
     return amountOut;
 }

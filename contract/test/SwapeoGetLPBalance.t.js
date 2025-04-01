@@ -28,7 +28,6 @@ describe("SwapeoGetLPBalanceTest", function () {
       swapeo.waitForDeployment()
     ]);
 
-    // Dépôt de liquidité
     await tokenA.approve(swapeo.target, ethers.parseEther("100"));
     await tokenB.approve(swapeo.target, ethers.parseEther("100"));
     await swapeo.deposit(tokenA.target, tokenB.target, ethers.parseEther("100"), ethers.parseEther("100"));
